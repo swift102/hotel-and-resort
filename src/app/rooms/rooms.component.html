@@ -1,0 +1,40 @@
+<header class="tm-header">
+    <nav class="tm-nav">
+      <img src="assets/images/hotel.jpg" class="logo" alt="Logo" title="Hotel and resort" />
+      <ul>
+        <li><a [routerLink]="'/home'">Home</a></li>
+        <li><a [routerLink]="'/rooms'">Rooms</a></li>
+        <li><a [routerLink]="'/gallery'">Gallery</a></li>
+        <li><a [routerLink]="'/booking'">Booking</a></li>
+        <li><a [routerLink]="'/contact'">Contact</a></li>
+      </ul>
+    </nav>
+</header>
+  
+<div class="tm-main">
+  <p class="main-title">ROOMS</p>
+</div>
+<div class="main-container">
+  <section class="room-section" *ngFor="let section of roomSections">
+    <div class="room" *ngFor="let room of section.rooms">
+      <p class="room-title">{{ room.name }}</p>
+      <div class="trans">
+        <div>
+          <p *ngFor="let feature of room.features">{{ feature }}</p>
+        </div>
+        <div>
+          <p>Only for</p>
+          <p class="bold">{{ room.price }}</p>
+        </div>
+      </div>
+      <img class="room-image" [src]="room.image" [alt]="room.name" />
+    </div>
+  </section>
+  <section class="reservation">
+    <div class="res">
+      <div class="res-button">
+        <a [routerLink]="'/booking'"> <p>Make Reservation</p></a>
+      </div>
+    </div>
+  </section>
+</div>
