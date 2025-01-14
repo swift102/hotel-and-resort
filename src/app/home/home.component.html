@@ -1,77 +1,79 @@
 <!-- Home Component (home.component.html) -->
 <header class="tm-header">
-    <nav class="tm-nav">
-      <img src="assets/images/hotel.jpg" class="logo" alt="Logo" title="Hotel and resort" />
-      <ul>
-        <li><a [routerLink]="'/home'">Home</a></li>
-        <li><a [routerLink]="'/rooms'">Rooms</a></li>
-        <li><a [routerLink]="'/gallery'">Gallery</a></li>
-        <li><a [routerLink]="'/booking'">Booking</a></li>
-        <li><a [routerLink]="'/contact'">Contact</a></li>
-      </ul>
-    </nav>
-  </header>
-  
-  <div class="slideshow-container">
-    <div class="mySlides fade" *ngFor="let slide of slides">
-      <img [src]="slide.image" style="width:100%; height:400px;" />
-    </div>
-    <a class="prev" (click)="prevSlide()">&#10094;</a>
-    <a class="next" (click)="nextSlide()">&#10095;</a>
-    <div style="text-align:center">
-      <span class="dot" *ngFor="let dot of slides; let i = index" (click)="setSlide(i)"></span>
+  <nav class="tm-nav">
+    <img src="assets/images/hotel.jpg" class="logo" alt="Logo" title="Hotel and resort" />
+    <ul>
+      <li><a [routerLink]="'/'">Home</a></li>
+      <li><a [routerLink]="'/rooms'">Rooms</a></li>
+      <li><a [routerLink]="'/gallery'">Gallery</a></li>
+      <li><a [routerLink]="'/booking'">Booking</a></li>
+      <li><a [routerLink]="'/contact'">Contact</a></li>
+    </ul>
+  </nav>
+</header>
+
+<div class="slideshow-container">
+  <div class="mySlides fade" *ngFor="let slide of slides">
+    <img [src]="slide.image" style="width:100%; height:400px;" />
+  </div>
+  <a class="prev" (click)="prevSlide()">&#10094;</a>
+  <a class="next" (click)="nextSlide()">&#10095;</a>
+  <div style="text-align:center">
+    <span class="dot" *ngFor="let dot of slides; let i = index" (click)="setSlide(i)"></span>
+  </div>
+</div>
+
+<div class="room-container">
+  <p style="font-style: italic;">Accommodation</p>
+</div>
+<section class="slider-room-flex">
+  <div class="mp-rooms" *ngFor="let room of rooms">
+    <img [src]="room.image" />
+    <a [routerLink]="'/rooms'">
+      <p class="s">{{ room.name }}</p>
+    </a>
+  </div>
+</section>
+
+<section class="servicesection" *ngFor="let serviceGroup of serviceGroups">
+  <div class="service" *ngFor="let service of serviceGroup">
+    <img class="serviceimage" [src]="service.image" />
+    <div>
+      <p class="b">{{ service.title }}</p>
+      <p>{{ service.description }}</p>
     </div>
   </div>
-  
-  <div class="room-container">
-    <p style="font-style: italic;">Accommodation</p>
+</section>
+
+<section class="reservation">
+  <div class="res">
+    <div class="resbutton">
+      <a [routerLink]="'/booking'"><p>Make Reservation</p></a>
+    </div>
   </div>
-  <section class="slider-room-flex">
-    <div class="mp-rooms" *ngFor="let room of rooms">
-      <img [src]="room.image" />
-      <a [routerLink]="'/rooms'">
-        <p class="s">{{ room.name }}</p>
-      </a>
-    </div>
-  </section>
+</section>
+
+<footer class="footer">
+  <div class="AboutUs">
+    <p class="bold">About Us</p>
+    <p>We are a distinguished member of a network of luxury hotels known as Hotel and Resort with a global presence. 
+       Our commitment is to offer an opulent and unforgettable stay, enriched with numerous value-added services and
+       complimentary amenities. It is our sincere endeavor to ensure your satisfaction and leave you with an experience
+       that beckons you to revisit us again.</p>
+  </div>
+  <div class="Address">
+    <p class="bold">Address</p>
+    <p>University of Pretoria, Lunnon Rd, Hillcrest, Pretoria, 0186</p>
+    <p>Phone : (011) 284468225</p>
+    <p>Email : hotelresort&#64;info.com</p>
+  </div>
+  <div class="social-media">
+    <a href="#"><img src="assets/images/images/x_logo.png"></a>
+    <a href="#"><img src="assets/images/images/tiktok_logo.png"></a>
+    <a href="#"><img src="assets/images/images/ig_logo.jpg"></a>
+    <a href="#"><img src="assets/images/images/fb_logo.png"></a>
+  </div>
+</footer>
+
   
-  <section class="servicesection" *ngFor="let serviceGroup of serviceGroups">
-    <div class="service" *ngFor="let service of serviceGroup">
-      <img class="serviceimage" [src]="service.image" />
-      <div>
-        <p class="b">{{ service.title }}</p>
-        <p>{{ service.description }}</p>
-      </div>
-    </div>
-  </section>
-  
-  <section class="reservation">
-    <div class="res">
-      <div class="resbutton">
-        <a [routerLink]="'/booking'"><p>Make Reservation</p></a>
-      </div>
-    </div>
-  </section>
-  
-  <footer class="footer">
-    <div class="AboutUs">
-      <p class="bold">About Us</p>
-      <p>We are a distinguished member of a network of luxury hotels known as Hotel and Resort with a global presence. 
-         Our commitment is to offer an opulent and unforgettable stay, enriched with numerous value-added services and
-         complimentary amenities. It is our sincere endeavor to ensure your satisfaction and leave you with an experience
-         that beckons you to revisit us again.</p>
-    </div>
-    <div class="Address">
-      <p class="bold">Address</p>
-      <p>University of Pretoria, Lunnon Rd, Hillcrest, Pretoria, 0186</p>
-      <p>Phone : (011) 284468225</p>
-      <p>Email : hotelresort&#64;info.com</p>
-    </div>
-    <div class="social-media">
-      <a href="#"><img src="assets/images/x_logo.png"></a>
-      <a href="#"><img src="assets/images/tiktok_logo.png"></a>
-      <a href="#"><img src="assets/images/ig_logo.jpg"></a>
-      <a href="#"><img src="assets/images/fb_logo.png"></a>
-    </div>
-  </footer>
-  
+
