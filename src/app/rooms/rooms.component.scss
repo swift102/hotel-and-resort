@@ -1,0 +1,135 @@
+.tm-header {
+    background-color: #333;
+    padding: 10px 0;
+    color: white;
+  }
+  
+  .tm-nav ul {
+    list-style: none;
+    display: flex;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .tm-nav ul li {
+    margin: 0 15px;
+  }
+  
+  .tm-nav ul li a {
+    color: white;
+    text-decoration: none;
+  }
+  
+  .tm-main .main-title {
+    text-align: center;
+    font-size: 32px;
+    font-style: italic;
+    margin: 20px 0;
+  }
+  
+  .main-container {
+    padding: 20px;
+  }
+  
+  .room-section {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  
+  .room {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 30%;
+  }
+  
+  .room-title {
+    font-size: 20px;
+    font-weight: bold;
+  }
+  
+  .trans {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+  }
+  
+  .trans div p {
+    margin: 5px 0;
+  }
+  
+  .bold {
+    font-weight: bold;
+    font-size: 18px;
+  }
+  
+  .room-image {
+    width: 100%;
+    border-radius: 5px;
+  }
+  
+  .reservation {
+    text-align: center;
+    margin-top: 30px;
+  }
+  
+  .res-button {
+    background-color: #007bff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    display: inline-block;
+  }
+  
+  .res-button a {
+    color: white;
+    text-decoration: none;
+  }
+  
+  .res-button a p {
+    margin: 0;
+    font-size: 16px;
+  }
+  
+  .room {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 30%;
+    position: relative; /* Added for positioning child elements */
+    overflow: hidden; /* To clip the features box */
+  }
+  
+  .trans {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.7); /* Semi-transparent background */
+    color: white;
+    padding: 10px;
+    display: none; /* Initially hidden */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%; /* Full overlay effect */
+    text-align: center;
+  }
+  
+  .room:hover .trans {
+    display: flex; /* Show on hover */
+  }
+  
+  .room-image {
+    width: 100%;
+    border-radius: 5px;
+    transition: transform 0.3s; /* Smooth zoom effect */
+  }
+  
+  .room:hover .room-image {
+    transform: scale(1.1); /* Slight zoom on hover */
+  }
+  

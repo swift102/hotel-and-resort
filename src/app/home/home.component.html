@@ -68,10 +68,15 @@
       <p>Email : hotelresort&#64;info.com</p>
     </div>
     <div class="social-media">
-      <a href="#"><img src="assets/images/x_logo.png"></a>
-      <a href="#"><img src="assets/images/tiktok_logo.png"></a>
-      <a href="#"><img src="assets/images/ig_logo.jpg"></a>
-      <a href="#"><img src="assets/images/fb_logo.png"></a>
+      <a href="#"><img src="assets/images/x logo.png"></a>
+      <a href="#"><img src="assets/images/tiktok logo.png"></a>
+      <a href="#"><img src="assets/images/ig logo.jpg"></a>
+      <a href="#"><img src="assets/images/fb logo.png"></a>
     </div>
   </footer>
-  
+  <span
+  class="dot"
+  [class.active]="i === currentSlideIndex"
+  *ngFor="let dot of slides; let i = index"
+  (click)="setSlide(i)"
+></span>

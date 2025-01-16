@@ -1,0 +1,248 @@
+/* General styles */
+body {
+    font-family: 'Open Sans', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+  }
+  
+  /* Header styles */
+  .tm-header {
+    background: #353535;
+    padding: 20px 0;
+    color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+  
+  .tm-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 90%;
+    margin: 0 auto;
+  }
+  
+  .tm-nav .logo {
+    width: 60px;
+  }
+  
+  .tm-nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+  }
+  
+  .tm-nav ul li {
+    margin: 0 15px;
+  }
+  
+  .tm-nav ul li a {
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.2rem;
+    transition: color 0.3s;
+  }
+  
+  .tm-nav ul li a:hover {
+    color: #ec3c6a;
+  }
+  
+  /* Slideshow styles */
+  .slideshow-container {
+    max-width: 100%;
+    position: relative;
+    margin: auto;
+  }
+  
+  .mySlides {
+    display: none;
+  }
+  
+  .mySlides img {
+    width: 100%;
+    height: 400px;
+    object-fit: cover;
+    border-radius: 10px;
+  }
+  
+  .prev,
+  .next {
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    width: auto;
+    margin-top: -22px;
+    padding: 16px;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    transition: 0.6s ease;
+    border-radius: 0 3px 3px 0;
+    user-select: none;
+  }
+  
+  .prev {
+    left: 10px;
+    border-radius: 3px 0 0 3px;
+  }
+  
+  .next {
+    right: 10px;
+    border-radius: 0 3px 3px 0;
+  }
+  
+  .prev:hover,
+  .next:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+  }
+  
+  .dot {
+    cursor: pointer;
+    height: 15px;
+    width: 15px;
+    margin: 0 2px;
+    background-color: #bbb;
+    border-radius: 50%;
+    display: inline-block;
+    transition: background-color 0.6s ease;
+  }
+  
+  .dot.active,
+  .dot:hover {
+    background-color: #717171;
+  }
+  
+  /* Room section styles */
+  .room-container {
+    text-align: center;
+    padding: 30px 0;
+  }
+  
+  .room-container p {
+    font-style: italic;
+    font-size: 1.5rem;
+    color: #333;
+  }
+  
+  .slider-room-flex {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+  }
+  
+  .mp-rooms {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    text-align: center;
+    transition: transform 0.3s;
+    width: 250px;
+  }
+  
+  .mp-rooms img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+  }
+  
+  .mp-rooms:hover {
+    transform: scale(1.05);
+  }
+  
+  .mp-rooms p {
+    font-size: 1.1rem;
+    padding: 10px 0;
+    color: #333;
+  }
+  
+  /* Service section styles */
+  .servicesection {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 20px;
+  }
+  
+  .service {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 250px;
+    text-align: center;
+    padding: 20px;
+    transition: transform 0.3s;
+  }
+  
+  .service:hover {
+    transform: scale(1.05);
+  }
+  
+  .serviceimage {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 10px;
+  }
+  
+  .service p {
+    margin: 5px 0;
+  }
+  
+  /* Reservation section */
+  .reservation {
+    background: #ec3c6a;
+    color: #fff;
+    text-align: center;
+    padding: 30px 0;
+  }
+  
+  .resbutton p {
+    font-size: 1.5rem;
+    margin: 0;
+  }
+  
+  .resbutton a {
+    text-decoration: none;
+    color: #fff;
+  }
+  
+  .resbutton a:hover {
+    text-decoration: underline;
+  }
+  
+  /* Footer styles */
+  .footer {
+    background: #353535;
+    color: #fff;
+    padding: 40px 20px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  
+  .footer p {
+    margin: 0 0 10px;
+  }
+  
+  .bold {
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+  
+  .social-media img {
+    width: 40px;
+    height: 40px;
+    margin: 0 5px;
+    transition: transform 0.3s;
+  }
+  
+  .social-media img:hover {
+    transform: scale(1.1);
+  }
+  
