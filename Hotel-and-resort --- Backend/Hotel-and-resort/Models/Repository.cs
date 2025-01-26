@@ -86,6 +86,12 @@ namespace hotel_and_resort.Models
             return room;
         }
 
+        public IEnumerable<Booking> GetReservationsForRoom(int roomId)
+        {
+            // Retrieve reservations for the given room ID from the data store
+            return _context.Bookings.Where(r => r.RoomId == roomId);
+        }
+
         // Booking Methods
         public async Task<List<Booking>> GetBookings()
         {

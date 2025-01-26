@@ -30,13 +30,14 @@ namespace hotel_and_resort.Models
                     j => j.HasOne<Room>().WithMany().HasForeignKey("RoomID"));
 
             // Many-to-Many: Room <-> Booking
-            modelBuilder.Entity<Room>()
-                .HasMany(r => r.Bookings)
-                .WithMany(b => b.Rooms)
-                .UsingEntity<Dictionary<string, object>>(
-                    "BookingRoom",
-                    j => j.HasOne<Booking>().WithMany().HasForeignKey("BookingID"),
-                    j => j.HasOne<Room>().WithMany().HasForeignKey("RoomID"));
+            //modelBuilder.Entity<Room>()
+            //    .HasMany(r => r.Bookings)
+            //    .WithMany(b => b.Rooms)
+            //    .UsingEntity<Dictionary<string, object>>(
+            //        "BookingRoom",
+            //        j => j.HasOne<Booking>().WithMany().HasForeignKey("BookingID"),
+            //        j => j.HasOne<Room>().WithMany().HasForeignKey("RoomID"));
+
 
 
             // One-to-Many: Room -> Image
@@ -58,6 +59,18 @@ namespace hotel_and_resort.Models
                 .HasForeignKey(b => b.CustomerId);
 
 
+            // One-to-Many: Room -> Reservation
+            modelBuilder.Entity<Room>()
+                .HasMany(r => r.Bookings)
+                .WithOne(res => res.Room)
+                .HasForeignKey(res => res.RoomId);
+
+
+            //// One-to-Many: Customer -> Reservation
+            //modelBuilder.Entity<Customer>()
+            //    .HasMany(c => c.Bookings)
+            //    .WithOne(res => res.Customer)
+            //    .HasForeignKey(res => res.CustomerId);
 
 
             // Seed data or additional configurations can be added here if needed

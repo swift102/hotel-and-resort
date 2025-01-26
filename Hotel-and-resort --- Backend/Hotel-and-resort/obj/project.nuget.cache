@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "twuOx5VWFHY=",
+  "dgSpecHash": "FqtjPf3XyCs=",
   "success": true,
-  "projectFilePath": "C:\\Users\\WESLEY\\Downloads\\HR\\Hotel-and-resort\\Hotel-and-resort\\Hotel-and-resort.csproj",
+  "projectFilePath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\Hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\WESLEY\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",
