@@ -2,6 +2,11 @@
 using hotel_and_resort.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Hotel_and_resort.Models;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
 
 namespace hotel_and_resort.Models
 {
@@ -14,6 +19,25 @@ namespace hotel_and_resort.Models
             _context = context;
         }
 
+        public void Add<T>(T entity) where T : class
+        {
+            _context.Add(entity);
+        }
+
+        public void Delete<T>(T entity) where T : class
+        {
+            _context.Remove(entity);
+        }
+
+        public async Task<bool> SaveChangesAsync()
+        {
+            return (await _context.SaveChangesAsync()) > 0;
+        }
+
+        public void Update<T>(T entity) where T : class
+        {
+            _context.Entry(entity).State = EntityState.Modified;
+        }
         // Customer Methods
         public async Task<List<Customer>> GetCustomers()
         {
@@ -28,14 +52,14 @@ namespace hotel_and_resort.Models
         public async Task<Customer> AddCustomer(Customer customer)
         {
             var result = await _context.Customers.AddAsync(customer);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
             return result.Entity;
         }
 
         public async Task<Customer> UpdateCustomer(Customer customer)
         {
             var result = _context.Customers.Update(customer);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
             return result.Entity;
         }
 
@@ -45,7 +69,7 @@ namespace hotel_and_resort.Models
             if (customer != null)
             {
                 _context.Customers.Remove(customer);
-                await _context.SaveChangesAsync();
+                await SaveChangesAsync();
             }
             return customer;
         }
@@ -64,14 +88,14 @@ namespace hotel_and_resort.Models
         public async Task<Room> AddRoom(Room room)
         {
             var result = await _context.Rooms.AddAsync(room);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
             return result.Entity;
         }
 
         public async Task<Room> UpdateRoom(Room room)
         {
             var result = _context.Rooms.Update(room);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
             return result.Entity;
         }
 
@@ -81,7 +105,7 @@ namespace hotel_and_resort.Models
             if (room != null)
             {
                 _context.Rooms.Remove(room);
-                await _context.SaveChangesAsync();
+                await SaveChangesAsync();
             }
             return room;
         }
@@ -106,14 +130,14 @@ namespace hotel_and_resort.Models
         public async Task<Booking> AddBooking(Booking booking)
         {
             var result = await _context.Bookings.AddAsync(booking);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
             return result.Entity;
         }
 
         public async Task<Booking> UpdateBooking(Booking booking)
         {
             var result = _context.Bookings.Update(booking);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
             return result.Entity;
         }
 
@@ -123,7 +147,7 @@ namespace hotel_and_resort.Models
             if (booking != null)
             {
                 _context.Bookings.Remove(booking);
-                await _context.SaveChangesAsync();
+                await SaveChangesAsync();
             }
             return booking;
         }
@@ -143,7 +167,7 @@ namespace hotel_and_resort.Models
         public async Task<Payment> AddPayment(Payment payment)
         {
             var result = await _context.Payments.AddAsync(payment);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
             return result.Entity;
         }
 
@@ -153,7 +177,7 @@ namespace hotel_and_resort.Models
             if (payment != null)
             {
                 _context.Payments.Remove(payment);
-                await _context.SaveChangesAsync();
+                await SaveChangesAsync();
             }
             return payment;
         }
@@ -178,7 +202,7 @@ namespace hotel_and_resort.Models
         public async Task<Image> AddImage(Image image)
         {
             _context.Images.Add(image);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
             return image;
         }
 
@@ -196,7 +220,7 @@ namespace hotel_and_resort.Models
             existingImage.RoomID = image.RoomID;
 
             _context.Images.Update(existingImage);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
             return existingImage;
         }
 
@@ -210,7 +234,7 @@ namespace hotel_and_resort.Models
             }
 
             _context.Images.Remove(image);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
             return image;
         }
 
@@ -228,14 +252,14 @@ namespace hotel_and_resort.Models
         public async Task<Amenities> AddAmenity(Amenities amenity)
         {
             var result = await _context.Amenities.AddAsync(amenity);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
             return result.Entity;
         }
 
         public async Task<Amenities> UpdateAmenity(Amenities amenity)
         {
             var result = _context.Amenities.Update(amenity);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
             return result.Entity;
         }
 
@@ -245,16 +269,35 @@ namespace hotel_and_resort.Models
             if (amenity != null)
             {
                 _context.Amenities.Remove(amenity);
-                await _context.SaveChangesAsync();
+                await SaveChangesAsync();
             }
             return amenity;
         }
 
 
-        // Save Changes
-        public async Task SaveChangesAsync()
+        // Get a user profile by ID
+        public async Task<UserProfile> GetUserProfileByID(int userProfileId)
         {
-            await _context.SaveChangesAsync();
+            return await _context.UserProfiles.FindAsync(userProfileId);
         }
+
+        // Get a user by username
+        public async Task<User> GetUserByUsernameAsync(string username)
+        {
+            return await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
+        }
+
+        // UserSession methods
+
+        //public async Task<UserSession> GetUserSessionByIdAsync(string sessionId)
+        //{
+        //    return await _context.UserSessions
+        //        .Include(us => us.User)
+        //        .FirstOrDefaultAsync(us => us.SessionID == sessionId);
+        //}
+
+
+        // Save Changes
+       
     }
 }

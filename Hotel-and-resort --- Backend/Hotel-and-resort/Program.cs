@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.Identity.UI;
+using Microsoft.EntityFrameworkCore;
 using hotel_and_resort.Models;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,14 +10,14 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.FileProviders;
 using System.IO;
-using Microsoft.EntityFrameworkCore;
+using Hotel_and_resort.Models;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Vonage;
+using Vonage.Request;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-// Add services to the container.
-// Register your repository
-builder.Services.AddScoped<IRepository, Repository>();
 
 // Add services to the container.
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -31,6 +34,29 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     .EnableSensitiveDataLogging() // Enable detailed logging
     .LogTo(Console.WriteLine, LogLevel.Information) // Log to console
 );
+
+
+// Add Identity services
+builder.Services.AddIdentity<User, IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+
+
+
+// Register your repository
+builder.Services.AddScoped<IRepository, Repository>();
+builder.Services.AddScoped<IEmailSender, EmailSender>();
+builder.Services.AddSingleton<IEmailSender, EmailSender>();
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
+builder.Services.AddSingleton(resolver => resolver.GetRequiredService<IOptions<SmtpSettings>>().Value);
+
+
+builder.Services.AddScoped<ISmsSenderService>(provider =>
+{
+    var logger = provider.GetRequiredService<ILogger<SmsSenderService>>();
+    return new SmsSenderService("59cb8814", "ttNnQ3C9ZQtxM75H", logger);
+});
 
 
 builder.Services.AddControllers();

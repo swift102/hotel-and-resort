@@ -2,11 +2,15 @@
 using System.Reflection.Emit;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using hotel_and_resort.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+
+using Hotel_and_resort.Models;
+
+
 
 namespace hotel_and_resort.Models
 {
-    public class AppDbContext: DbContext
+    public class AppDbContext : IdentityDbContext<User>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -16,7 +20,9 @@ namespace hotel_and_resort.Models
         public DbSet<Payment> Payments { get; set; }
         public DbSet<Amenities> Amenities { get; set; }
         public DbSet<Image> Images { get; set; }
-   
+        public DbSet<UserProfile> UserProfiles { get; set; }
+        public DbSet<User> Users { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -66,14 +72,20 @@ namespace hotel_and_resort.Models
                 .HasForeignKey(res => res.RoomId);
 
 
-            //// One-to-Many: Customer -> Reservation
-            //modelBuilder.Entity<Customer>()
-            //    .HasMany(c => c.Bookings)
-            //    .WithOne(res => res.Customer)
-            //    .HasForeignKey(res => res.CustomerId);
+            // User relationships
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.UserProfile)
+                .WithMany(up => up.Users)
+                .HasForeignKey(u => u.UserProfileID);
 
+            // User-UserSession one-to-many relationship
+            //modelBuilder.Entity<User>()
+            //    .HasMany(u => u.UserSessions)
+            //    .WithOne(us => us.User)
+            //    .HasForeignKey(us => us.UserID)
+            //    .OnDelete(DeleteBehavior.Cascade);
 
-            // Seed data or additional configurations can be added here if needed
+            base.OnModelCreating(modelBuilder);
         }
     }
 
