@@ -1,4 +1,6 @@
-﻿namespace hotel_and_resort.Models
+﻿using Microsoft.EntityFrameworkCore;
+
+namespace hotel_and_resort.Models
 {
     public class Amenities
     {

@@ -122,6 +122,31 @@ namespace hotel_and_resort.Controllers
             }
         }
 
+        [HttpPost("upload")]
+        public async Task<IActionResult> UploadImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("No file uploaded.");
+            }
+
+            var filePath = Path.Combine("wwwroot/images", file.FileName);
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var image = new Image
+            {
+                Name = file.FileName,
+                ImagePath = filePath,
+                RoomID = 1 // Replace with actual room ID
+            };
+
+            await _repository.AddImage(image);
+            return Ok(new { filePath });
+        }
+
         // PUT: api/images/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateImage(int id, ImageUpdateDTO imageDto)

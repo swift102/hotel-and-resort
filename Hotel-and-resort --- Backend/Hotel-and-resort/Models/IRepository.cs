@@ -7,10 +7,56 @@ namespace hotel_and_resort.Models
 {
     public interface IRepository
     {
-        void Add<T>(T entity) where T : class;
-        void Delete<T>(T entity) where T : class;
-        Task<bool> SaveChangesAsync();
-        void Update<T>(T entity) where T : class;
+        public interface IRepository<T> where T : class
+        {
+            Task<IEnumerable<T>> GetAllAsync();
+            Task<T> GetByIdAsync(int id);
+            Task AddAsync(T entity);
+            Task UpdateAsync(T entity);
+            Task DeleteAsync(int id);
+        }
+
+        public class Repository<T> : IRepository<T> where T : class
+        {
+            private readonly AppDbContext _context;
+
+            public Repository(AppDbContext context)
+            {
+                _context = context;
+            }
+
+            public async Task<IEnumerable<T>> GetAllAsync()
+            {
+                return await _context.Set<T>().ToListAsync();
+            }
+
+            public async Task<T> GetByIdAsync(int id)
+            {
+                return await _context.Set<T>().FindAsync(id);
+            }
+
+            public async Task AddAsync(T entity)
+            {
+                await _context.Set<T>().AddAsync(entity);
+                await _context.SaveChangesAsync();
+            }
+
+            public async Task UpdateAsync(T entity)
+            {
+                _context.Set<T>().Update(entity);
+                await _context.SaveChangesAsync();
+            }
+
+            public async Task DeleteAsync(int id)
+            {
+                var entity = await _context.Set<T>().FindAsync(id);
+                if (entity != null)
+                {
+                    _context.Set<T>().Remove(entity);
+                    await _context.SaveChangesAsync();
+                }
+            }
+        }
 
 
         // Customer Methods
@@ -61,15 +107,19 @@ namespace hotel_and_resort.Models
 
         Task<User> GetUserByUsernameAsync(string username);
 
-        //Task<UserSession> GetUserSessionByIdAsync(string sessionId);
 
-        // Image Methods
-        //Task<List<Image>> GetImages();
-        //Task<Image> GetImage(int id);
-        //Task<Image> AddImage(Image image);
-        //Task<Image> DeleteImage(int id);
+        Task<Payment> ProcessPayment(int bookingId, int amount, string paymentToken);
 
 
+    //Task<UserSession> GetUserSessionByIdAsync(string sessionId);
 
-    }
+    // Image Methods
+    //Task<List<Image>> GetImages();
+    //Task<Image> GetImage(int id);
+    //Task<Image> AddImage(Image image);
+    //Task<Image> DeleteImage(int id);
+
+
+
+}
 }

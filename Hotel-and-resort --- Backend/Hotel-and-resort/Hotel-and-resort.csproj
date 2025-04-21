@@ -8,8 +8,11 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Identity Packages -->
+    <PackageReference Include="FluentValidation" Version="11.11.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.15" />
 
     <!-- Entity Framework Core (EF Core) -->
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.3" />
@@ -22,6 +25,7 @@
     <!-- Identity Extensions -->
     <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="8.0.3" />
     <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="8.0.3" />
+    <PackageReference Include="Stripe.net" Version="47.3.0" />
 
     <!-- Swagger for API Documentation -->
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />

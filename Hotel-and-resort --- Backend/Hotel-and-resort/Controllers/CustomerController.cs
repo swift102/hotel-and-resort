@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using hotel_and_resort.Services;
 
 namespace hotel_and_resort.Controllers
 {
@@ -13,69 +14,53 @@ namespace hotel_and_resort.Controllers
     [ApiController]
     public class CustomersController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly IRepository _repository;
+        private readonly CustomerService _customerService;
         private readonly ILogger<CustomersController> _logger;
 
-        public CustomersController(AppDbContext context, IRepository repository, ILogger<CustomersController> logger)
+        public CustomersController(CustomerService customerService, ILogger<CustomersController> logger)
         {
-            _context = context;
-            _repository = repository;
+            _customerService = customerService;
             _logger = logger;
         }
 
-        // GET: api/customers
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CustomerReadDTO>>> GetCustomers()
+        public async Task<ActionResult<IEnumerable<CustomerReadDTO>>> GetCustomers(int page = 1, int pageSize = 10)
         {
-            var customers = await _context.Customers
-                .Select(c => new CustomerReadDTO
-                {
-                    Id = c.Id,
-                    FirstName = c.FirstName,
-                    LastName = c.LastName,
-                    Email = c.Email,
-                    Phone = c.Phone
-                })
-                .ToListAsync();
-
-            return Ok(customers);
+            var customers = await _customerService.GetCustomersAsync(page, pageSize);
+            var customerDtos = customers.Select(c => new CustomerReadDTO
+            {
+                Id = c.Id,
+                FirstName = c.FirstName,
+                LastName = c.LastName,
+                Email = c.Email,
+                Phone = c.Phone
+            });
+            return Ok(customerDtos);
         }
 
-        // GET: api/customers/5
         [HttpGet("{id}")]
         public async Task<ActionResult<CustomerReadDTO>> GetCustomer(int id)
         {
-            var customer = await _context.Customers
-                .Where(c => c.Id == id)
-                .Select(c => new CustomerReadDTO
-                {
-                    Id = c.Id,
-                    FirstName = c.FirstName,
-                    LastName = c.LastName,
-                    Email = c.Email,
-                    Phone = c.Phone
-                })
-                .FirstOrDefaultAsync();
+            var customer = await _customerService.GetCustomerByIdAsync(id);
+            if (customer == null) return NotFound();
 
-            if (customer == null)
+            var customerDto = new CustomerReadDTO
             {
-                return NotFound();
-            }
-
-            return Ok(customer);
+                Id = customer.Id,
+                FirstName = customer.FirstName,
+                LastName = customer.LastName,
+                Email = customer.Email,
+                Phone = customer.Phone
+            };
+            return Ok(customerDto);
         }
 
-        // POST: api/customers
         [HttpPost]
-        public async Task<IActionResult> AddCustomer(CustomerCreateDTO customerDto)
+        public async Task<IActionResult> AddCustomer([FromBody] CustomerCreateDTO customerDto)
         {
             try
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest("Invalid customer data.");
-                }
+                if (!ModelState.IsValid) return BadRequest(ModelState);
 
                 var customer = new Customer
                 {
@@ -86,24 +71,24 @@ namespace hotel_and_resort.Controllers
                     Title = customerDto.Title
                 };
 
-                var addedCustomer = await _repository.AddCustomer(customer);
-
+                var addedCustomer = await _customerService.AddCustomerAsync(customer);
                 return CreatedAtAction(nameof(GetCustomer), new { id = addedCustomer.Id }, addedCustomer);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding customer.");
-                return StatusCode(500, "Internal server error.");
+                _logger.LogError(ex, "Error adding customer");
+                return StatusCode(500, "Internal server error");
             }
         }
 
-        // PUT: api/customers/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCustomer(int id, CustomerUpdateDTO customerDto)
+        public async Task<IActionResult> UpdateCustomer(int id, [FromBody] CustomerUpdateDTO customerDto)
         {
             try
             {
-                var customer = await _repository.GetCustomerById(id);
+                if (!ModelState.IsValid) return BadRequest(ModelState);
+
+                var customer = await _customerService.GetCustomerByIdAsync(id);
                 if (customer == null)
                 {
                     _logger.LogWarning("Customer not found for ID: {Id}", id);
@@ -116,31 +101,33 @@ namespace hotel_and_resort.Controllers
                 customer.Phone = customerDto.Phone;
                 customer.Title = customerDto.Title;
 
-                await _repository.UpdateCustomer(customer);
-
+                await _customerService.UpdateCustomerAsync(customer);
                 return NoContent();
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating customer");
                 return StatusCode(500, "Internal server error");
             }
         }
 
-        // DELETE: api/customers/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCustomer(int id)
         {
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null)
+            try
             {
-                return NotFound();
+                var customer = await _customerService.GetCustomerByIdAsync(id);
+                if (customer == null) return NotFound();
+
+                await _customerService.DeleteCustomerAsync(id);
+                return NoContent();
             }
-
-            _context.Customers.Remove(customer);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting customer");
+                return StatusCode(500, "Internal server error");
+            }
         }
     }
+
 }

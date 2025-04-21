@@ -1,8 +1,11 @@
 ﻿using hotel_and_resort.DTOs;
 using hotel_and_resort.Models;
+using Hotel_and_resort.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Stripe;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -12,93 +15,23 @@ namespace hotel_and_resort.Controllers
     [ApiController]
     public class BookingController : ControllerBase
     {
-        private readonly IRepository _repository;
+        private readonly AppDbContext _context;
+        private readonly PaymentService _paymentService;
         private readonly ILogger<BookingController> _logger;
 
-        public BookingController(IRepository repository, ILogger<BookingController> logger)
+        public BookingController(AppDbContext context, PaymentService paymentService, ILogger<BookingController> logger)
         {
-            _repository = repository;
+            _context = context;
+            _paymentService = paymentService;
             _logger = logger;
         }
 
-        // GET: api/bookings
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<BookingResponseDTO>>> GetBookings()
-        {
-            try
-            {
-                var bookings = await _repository.GetBookings();
-                if (bookings == null || !bookings.Any())
-                {
-                    _logger.LogWarning("No bookings found.");
-                    return NotFound();
-                }
-
-                // Map bookings to BookingResponseDTO
-                var bookingDtos = bookings.Select(b => new BookingResponseDTO
-                {
-                    Id = b.Id,
-                    RoomId = b.RoomId,
-                    CustomerId = b.CustomerId,
-                    CheckIn = b.CheckIn,
-                    CheckOut = b.CheckOut,
-                    TotalPrice = b.TotalPrice,
-                    Status = b.Status
-                });
-
-                return Ok(bookingDtos);
-            }
-            catch (System.Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching bookings");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        // GET: api/bookings/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<BookingResponseDTO>> GetBooking(int id)
-        {
-            try
-            {
-                var booking = await _repository.GetBookingById(id);
-                if (booking == null)
-                {
-                    _logger.LogWarning("Booking not found for ID: {Id}", id);
-                    return NotFound();
-                }
-
-                var bookingDto = new BookingResponseDTO
-                {
-                    Id = booking.Id,
-                    RoomId = booking.RoomId,
-                    CustomerId = booking.CustomerId,
-                    CheckIn = booking.CheckIn,
-                    CheckOut = booking.CheckOut,
-                    TotalPrice = booking.TotalPrice,
-                    Status = booking.Status
-                };
-
-                return Ok(bookingDto);
-            }
-            catch (System.Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching booking");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        // POST: api/bookings
         [HttpPost]
-        public async Task<ActionResult<BookingResponseDTO>> AddBooking(BookingCreateDTO bookingDto)
+        public async Task<ActionResult<BookingResponseDTO>> AddBooking([FromBody] BookingCreateDTO bookingDto)
         {
             try
             {
-                if (bookingDto.CheckIn >= bookingDto.CheckOut)
-                {
-                    _logger.LogWarning("Check-in date must be before check-out date.");
-                    return BadRequest("Check-in date must be before check-out date.");
-                }
+                if (!ModelState.IsValid) return BadRequest(ModelState);
 
                 var booking = new Booking
                 {
@@ -106,85 +39,100 @@ namespace hotel_and_resort.Controllers
                     CustomerId = bookingDto.CustomerId,
                     CheckIn = bookingDto.CheckIn,
                     CheckOut = bookingDto.CheckOut,
-                    TotalPrice = bookingDto.TotalPrice
+                    TotalPrice = bookingDto.TotalPrice,
+                    Status = BookingStatus.Pending
                 };
 
-                var addedBooking = await _repository.AddBooking(booking);
+                _context.Bookings.Add(booking);
+                await _context.SaveChangesAsync();
 
                 var addedBookingDto = new BookingResponseDTO
                 {
-                    Id = addedBooking.Id,
-                    RoomId = addedBooking.RoomId,
-                    CustomerId = addedBooking.CustomerId,
-                    CheckIn = addedBooking.CheckIn,
-                    CheckOut = addedBooking.CheckOut,
-                    TotalPrice = addedBooking.TotalPrice,
-                    Status = addedBooking.Status
+                    Id = booking.Id,
+                    RoomId = booking.RoomId,
+                    CustomerId = booking.CustomerId,
+                    CheckIn = booking.CheckIn,
+                    CheckOut = booking.CheckOut,
+                    TotalPrice = (int)booking.TotalPrice,
+                    Status = booking.Status.ToString()
                 };
 
-                return CreatedAtAction(nameof(GetBooking), new { id = addedBookingDto.Id }, addedBookingDto);
+                return CreatedAtAction(nameof(GetBooking), new { id = booking.Id }, addedBookingDto);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error adding booking");
                 return StatusCode(500, "Internal server error");
             }
         }
 
-        // PUT: api/bookings/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateBooking(int id, BookingUpdateDTO bookingDto)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<BookingResponseDTO>> GetBooking(int id)
+        {
+            var booking = await _context.Bookings.FindAsync(id);
+            if (booking == null) return NotFound();
+
+            var bookingDto = new BookingResponseDTO
+            {
+                Id = booking.Id,
+                RoomId = booking.RoomId,
+                CustomerId = booking.CustomerId,
+                CheckIn = booking.CheckIn,
+                CheckOut = booking.CheckOut,
+                TotalPrice = (int)booking.TotalPrice,
+                Status = booking.Status.ToString()
+            };
+
+            return Ok(bookingDto);
+        }
+
+        [HttpPost("{id}/process-payment")]
+        public async Task<IActionResult> ProcessPayment(int id, [FromBody] ProcessPaymentDto paymentDto)
         {
             try
             {
-                var booking = await _repository.GetBookingById(id);
-                if (booking == null)
-                {
-                    _logger.LogWarning("Booking not found for ID: {Id}", id);
-                    return NotFound();
-                }
+                var booking = await _context.Bookings.FindAsync(id);
+                if (booking == null) return NotFound();
 
-                // Update booking fields
-                booking.CheckIn = bookingDto.CheckIn;
-                booking.CheckOut = bookingDto.CheckOut;
-                booking.TotalPrice = bookingDto.TotalPrice;
-                booking.Status = bookingDto.Status;
+                var clientSecret = await _paymentService.CreatePaymentIntentAsync(paymentDto.Amount, paymentDto.Currency);
+                // Assume frontend confirms the payment and calls back; update status here for demo
+                booking.Status = BookingStatus.Confirmed;
+                await _context.SaveChangesAsync();
 
-                await _repository.UpdateBooking(booking);
-
-                return NoContent();
+                return Ok(new { Message = "Payment successful", ClientSecret = clientSecret });
             }
-            catch (System.Exception ex)
+            catch (StripeException ex)
             {
-                _logger.LogError(ex, "Error updating booking");
+                _logger.LogError(ex, "Stripe error processing payment for booking {BookingId}", id);
+                return BadRequest(new { Message = "Payment failed", Error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing payment for booking {BookingId}", id);
                 return StatusCode(500, "Internal server error");
             }
         }
+    }
 
+    public class BookingCreateDTO
+    {
+        [Required]
+        public int RoomId { get; set; }
+        [Required]
+        public int CustomerId { get; set; }
+        [Required]
+        public DateTime CheckIn { get; set; }
+        [Required]
+        public DateTime CheckOut { get; set; }
+        [Range(0, double.MaxValue)]
+        public decimal TotalPrice { get; set; }
+    }
 
-        // DELETE: api/bookings/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteBooking(int id)
-        {
-            try
-            {
-                var booking = await _repository.GetBookingById(id);
-                if (booking == null)
-                {
-                    _logger.LogWarning("Booking not found for ID: {Id}", id);
-                    return NotFound();
-                }
-
-                await _repository.DeleteBooking(id);
-
-                _logger.LogInformation("Booking deleted successfully: {BookingId}", id);
-                return NoContent();
-            }
-            catch (System.Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting booking");
-                return StatusCode(500, "Internal server error");
-            }
-        }
+    public class ProcessPaymentDto
+    {
+        [Required, Range(1, int.MaxValue)]
+        public int Amount { get; set; }
+        [Required]
+        public string Currency { get; set; } = "usd";
     }
 }

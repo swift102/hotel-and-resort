@@ -35,16 +35,6 @@ namespace hotel_and_resort.Models
                     j => j.HasOne<Amenities>().WithMany().HasForeignKey("AmenitiesID"),
                     j => j.HasOne<Room>().WithMany().HasForeignKey("RoomID"));
 
-            // Many-to-Many: Room <-> Booking
-            //modelBuilder.Entity<Room>()
-            //    .HasMany(r => r.Bookings)
-            //    .WithMany(b => b.Rooms)
-            //    .UsingEntity<Dictionary<string, object>>(
-            //        "BookingRoom",
-            //        j => j.HasOne<Booking>().WithMany().HasForeignKey("BookingID"),
-            //        j => j.HasOne<Room>().WithMany().HasForeignKey("RoomID"));
-
-
 
             // One-to-Many: Room -> Image
             modelBuilder.Entity<Room>()
@@ -86,6 +76,13 @@ namespace hotel_and_resort.Models
             //    .OnDelete(DeleteBehavior.Cascade);
 
             base.OnModelCreating(modelBuilder);
+
+            // Seed roles
+            modelBuilder.Entity<IdentityRole>().HasData(
+                new IdentityRole { Name = "Admin", NormalizedName = "ADMIN" },
+                new IdentityRole { Name = "Staff", NormalizedName = "STAFF" },
+                new IdentityRole { Name = "Guest", NormalizedName = "GUEST" }
+            );
         }
     }
 

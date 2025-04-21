@@ -6,6 +6,9 @@ using Hotel_and_resort.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Stripe;
+using Stripe.Checkout;
+using Microsoft.Extensions.Logging;
 
 
 namespace hotel_and_resort.Models
@@ -13,11 +16,16 @@ namespace hotel_and_resort.Models
     public class Repository : IRepository
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<Repository> _logger;
 
-        public Repository(AppDbContext context)
+
+
+        public Repository(AppDbContext context, ILogger<Repository> logger)
         {
             _context = context;
+            _logger = logger;
         }
+
 
         public void Add<T>(T entity) where T : class
         {
@@ -152,6 +160,33 @@ namespace hotel_and_resort.Models
             return booking;
         }
 
+        public async Task<bool> IsRoomAvailable(int roomId, DateTime checkIn, DateTime checkOut)
+        {
+            var overlappingBookings = await _context.Bookings
+                .Where(b => b.RoomId == roomId &&
+                            b.CheckIn < checkOut &&
+                            b.CheckOut > checkIn)
+                .ToListAsync();
+
+            return !overlappingBookings.Any();
+        }
+
+        public async Task UpdateRoomAvailability(int roomId)
+        {
+            var room = await _context.Rooms.FindAsync(roomId);
+            var hasActiveBookings = await _context.Bookings
+                .AnyAsync(b => b.RoomId == roomId && b.Status == BookingStatus.Confirmed);
+
+            room.IsAvailable = !hasActiveBookings;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<Room>> GetRoomsByAmenities(List<int> amenityIds)
+        {
+            return await _context.Rooms
+                .Where(r => r.Amenities.Any(a => amenityIds.Contains(a.Id)))
+                .ToListAsync();
+        }
 
         // Payment Methods
         public async Task<List<Payment>> GetPayments()
@@ -181,6 +216,86 @@ namespace hotel_and_resort.Models
             }
             return payment;
         }
+
+
+        public async Task<Payment> ProcessPayment(int bookingId, int amount, string paymentToken)
+        {
+            // Create a new Payment entity
+            var payment = new Payment
+            {
+                BookingId = bookingId,
+                Amount = amount,
+                PaymentDate = DateTime.UtcNow,
+                Status = PaymentStatus.Pending // Initial status
+            };
+
+            try
+            {
+                // Create a PaymentIntent using Stripe
+                var options = new PaymentIntentCreateOptions
+                {
+                    Amount = amount * 100, // Stripe uses cents, so multiply by 100
+                    Currency = "zar", // Replace with your currency
+                    PaymentMethod = paymentToken, // Token from the frontend
+                    Confirm = true, // Automatically confirm the payment
+                    OffSession = true, // Payment is happening without the customer being present
+                };
+
+                var service = new PaymentIntentService();
+                var paymentIntent = await service.CreateAsync(options);
+
+                // Check if the payment was successful
+                if (paymentIntent.Status == "succeeded")
+                {
+                    payment.Status = PaymentStatus.Completed;
+                }
+                else
+                {
+                    payment.Status = PaymentStatus.Failed;
+                }
+            }
+            catch (StripeException ex)
+            {
+                // Handle Stripe-specific errors
+                payment.Status = PaymentStatus.Failed;
+                _logger.LogError(ex, "Stripe payment failed for booking {BookingId}", bookingId);
+            }
+            catch (Exception ex)
+            {
+                // Handle other errors
+                payment.Status = PaymentStatus.Failed;
+                _logger.LogError(ex, "Payment processing failed for booking {BookingId}", bookingId);
+            }
+
+            // Save the payment to the database
+            await _context.Payments.AddAsync(payment);
+            await _context.SaveChangesAsync();
+
+            return payment;
+        }
+
+        public async Task<Payment> ProcessPaymentAndUpdateBooking(int bookingId, int amount, string paymentToken)
+        {
+            var booking = await _context.Bookings.FindAsync(bookingId);
+            if (booking == null)
+            {
+                throw new ArgumentException("Booking not found.");
+            }
+
+            // Process the payment
+            var payment = await ProcessPayment(bookingId, amount, paymentToken);
+
+            // Update the booking status if payment is successful
+            if (payment.Status == PaymentStatus.Completed)
+            {
+                booking.Status = BookingStatus.Confirmed;
+                await _context.SaveChangesAsync();
+            }
+
+            return payment;
+        }
+
+
 
         // Image Methods
 

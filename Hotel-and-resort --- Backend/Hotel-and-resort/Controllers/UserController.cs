@@ -64,6 +64,31 @@ namespace Hotel_and_resort.Controllers
             return Ok(new { message = "Logout successful" });
         }
 
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
+        {
+            var user = new User
+            {
+                UserName = registerDto.UserName,
+                Email = registerDto.Email
+            };
+
+            var result = await _userManager.CreateAsync(user, registerDto.Password);
+
+            if (result.Succeeded)
+            {
+                // Option 1: Add a default role if RegisterDto doesn't have a Role property
+                await _userManager.AddToRoleAsync(user, "User"); // Assigning a default role
+
+                // Option 2: Add the Role property to RegisterDto if you want role selection
+                await _userManager.AddToRoleAsync(user, registerDto.Role);
+
+                return Ok(new { Message = "User registered successfully." });
+            }
+
+            return BadRequest(result.Errors);
+        }
+
 
         [HttpPost("addUser")]
         public async Task<IActionResult> AddUser([FromBody] CreateUserDto createUserDto)
@@ -143,144 +168,7 @@ namespace Hotel_and_resort.Controllers
             return Ok("User deleted successfully.");
         }
 
-        [HttpPost("forgotPassword")]
-        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
-        {
-            try
-            {
-                var user = await _userManager.FindByEmailAsync(forgotPasswordDto.UserName);
-                if (user == null)
-                {
-                    _logger.LogWarning("User not found: {UserName}", forgotPasswordDto.UserName);
-                    return BadRequest("User not found.");
-                }
-
-                var verificationCode = new Random().Next(1000, 9999).ToString();
-                user.VerificationCode = verificationCode;
-                user.VerificationCodeExpiration = DateTime.UtcNow.AddMinutes(5);
-
-                var updateResult = await _userManager.UpdateAsync(user);
-                if (!updateResult.Succeeded)
-                {
-                    _logger.LogError("Could not save the verification code for user: {UserId}", user.Id);
-                    return BadRequest("Could not save the verification code.");
-                }
-
-                await _emailSender.SendEmailAsync(user.Email, "Password Reset Verification Code", $"Your verification code is: {verificationCode}");
-                _logger.LogInformation("Verification code sent to user: {UserId}", user.Id);
-
-                return Ok(new { message = "Verification code sent." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while processing forgot password for user: {UserName}", forgotPasswordDto.UserName);
-                return StatusCode(500, "Internal server error.");
-            }
-        }
-
-        [HttpPost("ResetPassword")]
-        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordModel model)
-        {
-            try
-            {
-                if (ModelState.IsValid)
-                {
-                    var user = await _userManager.FindByNameAsync(model.UserName);
-                    if (user != null)
-                    {
-                        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-                        var resetPasswordResult = await _userManager.ResetPasswordAsync(
-                            user, token, model.NewPassword);
-
-                        if (resetPasswordResult.Succeeded)
-                        {
-                            return Ok(new { Message = "Password reset successful" });
-                        }
-                        else
-                        {
-                            return BadRequest(new { Errors = resetPasswordResult.Errors.Select(e => e.Description) });
-                        }
-                    }
-                    return NotFound("User not found.");
-                }
-
-                return BadRequest(new { Message = "Invalid data provided" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error resetting password for user {model.UserName}: {ex.Message}");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        [HttpPost("VerifyCode")]
-        public async Task<IActionResult> VerifyCode([FromBody] VerificationModel model)
-        {
-            _logger.LogInformation($"Verifying code for user: {model.UserName}");
-            try
-            {
-                if (ModelState.IsValid)
-                {
-                    var user = await _userManager.FindByNameAsync(model.UserName);
-                    if (user != null)
-                    {
-                        _logger.LogInformation($"Found user: {model.UserName}");
-                        _logger.LogInformation($"Stored verification code: {user.VerificationCode}, Provided verification code: {model.VerificationCode}");
-                        _logger.LogInformation($"Current time: {DateTime.UtcNow}, Code expiration time: {user.VerificationCodeExpiration}");
-
-                        if (user.VerificationCode == model.VerificationCode && user.VerificationCodeExpiration > DateTime.UtcNow)
-                        {
-                            _logger.LogInformation("Verification code is valid");
-                            return Ok(new { isValid = true });
-                        }
-                        else
-                        {
-                            if (user.VerificationCode != model.VerificationCode)
-                            {
-                                _logger.LogWarning("Verification code does not match");
-                            }
-                            if (user.VerificationCodeExpiration <= DateTime.UtcNow)
-                            {
-                                _logger.LogWarning("Verification code has expired");
-                            }
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogWarning($"User not found: {model.UserName}");
-                    }
-                }
-                else
-                {
-                    _logger.LogWarning("Model state is invalid");
-                }
-
-                return Ok(new { isValid = false });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error verifying code for user {model.UserName}: {ex.Message}");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        // Add the SendVerificationEmail method here
-        [HttpPost("SendVerificationEmail")]
-        public async Task<IActionResult> SendVerificationEmail([FromBody] string email)
-        {
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user != null)
-            {
-                var token = await _userManager.GenerateUserTokenAsync(user, TokenOptions.DefaultProvider, "ResetPassword");
-                _logger.LogInformation($"Generated token for user {email}: {token}");
-
-                // Code to send the token via email
-                await _emailSender.SendEmailAsync(user.Email, "Verification Code", $"Your verification code is: {token}");
-
-                return Ok(new { Message = "Verification email sent." });
-            }
-            return BadRequest(new { Message = "Invalid email address." });
-        }
+       
 
 
         private List<string> ValidateCreateUserDto(CreateUserDto dto)
