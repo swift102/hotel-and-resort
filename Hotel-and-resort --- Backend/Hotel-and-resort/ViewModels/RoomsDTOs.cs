@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using hotel_and_resort.ViewModels;
+using System.ComponentModel.DataAnnotations;
 
 namespace hotel_and_resort.DTOs
 {
@@ -25,6 +26,8 @@ namespace hotel_and_resort.DTOs
         public int Capacity { get; set; }
         public string? Features { get; set; }
         public bool IsAvailable { get; set; }
+        public List<AmenitiesDTOs.AmenityListDTO> Amenities { get; set; } // Added this property
+        public List<ImageReadDTO> Images { get; set; }
     }
     // DTO for updating room details (write-only)
     public class RoomUpdateDTO

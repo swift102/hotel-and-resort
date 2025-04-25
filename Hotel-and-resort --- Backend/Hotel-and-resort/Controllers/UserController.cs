@@ -12,6 +12,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using System.Text.RegularExpressions;
 using hotel_and_resort.Models;
+using Microsoft.AspNetCore.Authorization;
+
 
 namespace Hotel_and_resort.Controllers
 {
@@ -74,15 +76,9 @@ namespace Hotel_and_resort.Controllers
             };
 
             var result = await _userManager.CreateAsync(user, registerDto.Password);
-
             if (result.Succeeded)
             {
-                // Option 1: Add a default role if RegisterDto doesn't have a Role property
-                await _userManager.AddToRoleAsync(user, "User"); // Assigning a default role
-
-                // Option 2: Add the Role property to RegisterDto if you want role selection
-                await _userManager.AddToRoleAsync(user, registerDto.Role);
-
+                await _userManager.AddToRoleAsync(user, registerDto.Role ?? "Guest");
                 return Ok(new { Message = "User registered successfully." });
             }
 
@@ -211,6 +207,73 @@ namespace Hotel_and_resort.Controllers
         private bool IsValidEmail(string email)
         {
             return !string.IsNullOrWhiteSpace(email) && email.Length <= 100 && Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$") && email.EndsWith(".com");
+        }
+
+        [HttpGet("admin/users")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllUsersWithRoles()
+        {
+            try
+            {
+                var users = await _userManager.Users.ToListAsync();
+                var userDtos = new List<object>();
+                foreach (var user in users)
+                {
+                    var roles = await _userManager.GetRolesAsync(user);
+                    userDtos.Add(new
+                    {
+                        user.Id,
+                        user.UserName,
+                        user.Email,
+                        user.Name,
+                        user.Surname,
+                        user.ContactNumber,
+                        user.UserProfileID,
+                        Roles = roles
+                    });
+                }
+                _logger.LogInformation("Admin retrieved {UserCount} users", userDtos.Count);
+                return Ok(userDtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching all users for admin");
+                return StatusCode(500, new { Error = "Internal server error" });
+            }
+        }
+
+        [HttpPut("admin/users/{id}/roles")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateUserRoles(string id, [FromBody] List<string> roles)
+        {
+            try
+            {
+                var user = await _userManager.FindByIdAsync(id);
+                if (user == null)
+                {
+                    _logger.LogWarning("User {UserId} not found for role update", id);
+                    return NotFound(new { Error = "User not found." });
+                }
+
+                var validRoles = new[] { "Admin", "Staff", "Guest" };
+                if (roles.Any(r => !validRoles.Contains(r)))
+                {
+                    _logger.LogWarning("Invalid roles provided for User {UserId}: {Roles}", id, string.Join(", ", roles));
+                    return BadRequest(new { Error = "Invalid roles. Must be Admin, Staff, or Guest." });
+                }
+
+                var currentRoles = await _userManager.GetRolesAsync(user);
+                await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                await _userManager.AddToRolesAsync(user, roles);
+
+                _logger.LogInformation("Admin updated roles for User {UserId} to {Roles}", id, string.Join(", ", roles));
+                return Ok(new { Message = "User roles updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating roles for User {UserId}", id);
+                return StatusCode(500, new { Error = "Internal server error" });
+            }
         }
     }
 }

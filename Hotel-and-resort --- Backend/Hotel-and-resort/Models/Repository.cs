@@ -160,16 +160,17 @@ namespace hotel_and_resort.Models
             return booking;
         }
 
-        public async Task<bool> IsRoomAvailable(int roomId, DateTime checkIn, DateTime checkOut)
-        {
-            var overlappingBookings = await _context.Bookings
-                .Where(b => b.RoomId == roomId &&
-                            b.CheckIn < checkOut &&
-                            b.CheckOut > checkIn)
-                .ToListAsync();
+        //public async Task UpdateRoomAvailability(int roomId)
+        //{
+        //    var room = await _context.Rooms.FindAsync(roomId);
+        //    if (room != null)
+        //    {
+        //        room.IsAvailable = false; // Example logic to mark the room as unavailable
+        //        _context.Rooms.Update(room);
+        //        await _context.SaveChangesAsync();
+        //    }
+        //}
 
-            return !overlappingBookings.Any();
-        }
 
         public async Task UpdateRoomAvailability(int roomId)
         {
@@ -181,6 +182,30 @@ namespace hotel_and_resort.Models
             await _context.SaveChangesAsync();
         }
 
+        public async Task<List<Booking>> GetBookingsByCustomerId(int customerId)
+        {
+            return await _context.Bookings
+                .Where(b => b.CustomerId == customerId)
+                .ToListAsync();
+        }
+
+        public async Task<List<Booking>> GetBookingsByRoomId(int roomId)
+        {
+            return await _context.Bookings
+                .Where(b => b.RoomId == roomId)
+                .ToListAsync();
+        }
+
+        public async Task<bool> IsRoomAvailable(int roomId, DateTime checkIn, DateTime checkOut)
+        {
+            var isBooked = await _context.Bookings
+                .AnyAsync(b => b.RoomId == roomId &&
+                               b.Status != BookingStatus.Cancelled &&
+                               (checkIn < b.CheckOut && checkOut > b.CheckIn));
+            return !isBooked;
+        }
+
+        
         public async Task<List<Room>> GetRoomsByAmenities(List<int> amenityIds)
         {
             return await _context.Rooms
@@ -274,23 +299,44 @@ namespace hotel_and_resort.Models
             return payment;
         }
 
+        //public async Task<Payment> ProcessPaymentAndUpdateBooking(int bookingId, int amount, string paymentToken)
+        //{
+        //    var booking = await _context.Bookings.FindAsync(bookingId);
+        //    if (booking == null)
+        //    {
+        //        throw new ArgumentException("Booking not found.");
+        //    }
+
+        //    // Process the payment
+        //    var payment = await ProcessPayment(bookingId, amount, paymentToken);
+
+        //    // Update the booking status if payment is successful
+        //    if (payment.Status == PaymentStatus.Completed)
+        //    {
+        //        booking.Status = BookingStatus.Confirmed;
+        //        await _context.SaveChangesAsync();
+        //    }
+
+        //    return payment;
+        //}
+
         public async Task<Payment> ProcessPaymentAndUpdateBooking(int bookingId, int amount, string paymentToken)
         {
             var booking = await _context.Bookings.FindAsync(bookingId);
-            if (booking == null)
-            {
-                throw new ArgumentException("Booking not found.");
-            }
+            if (booking == null) throw new ArgumentException("Booking not found.");
 
-            // Process the payment
-            var payment = await ProcessPayment(bookingId, amount, paymentToken);
-
-            // Update the booking status if payment is successful
-            if (payment.Status == PaymentStatus.Completed)
+            var payment = new Payment
             {
-                booking.Status = BookingStatus.Confirmed;
-                await _context.SaveChangesAsync();
-            }
+                BookingId = bookingId,
+                Amount = amount,
+                PaymentDate = DateTime.UtcNow,
+                PaymentMethod = "Stripe",
+                Status = PaymentStatus.Completed // Assume success for simplicity
+            };
+
+            _context.Payments.Add(payment);
+            booking.Status = BookingStatus.Confirmed;
+            await _context.SaveChangesAsync();
 
             return payment;
         }

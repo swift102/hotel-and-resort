@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using Hotel_and_resort.Models;
 using Hotel_and_resort.ViewModels;
+using Hotel_and_resort.Services; 
 using Microsoft.AspNetCore.Identity.UI.Services;
 using System;
 using System.Linq;
@@ -25,14 +26,16 @@ namespace hotel_and_resort.Controllers
         private readonly SignInManager<User> _signInManager;
         private readonly IEmailSender _emailSender;
         private readonly ILogger<AuthController> _logger;
+        private readonly TokenService _tokenService; // Add this field
 
         public AuthController(UserManager<User> userManager, SignInManager<User> signInManager,
-            IEmailSender emailSender, ILogger<AuthController> logger)
+            IEmailSender emailSender, ILogger<AuthController> logger, TokenService tokenService) // Add ITokenService to constructor
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _emailSender = emailSender;
             _logger = logger;
+            _tokenService = tokenService; // Initialize _tokenService
         }
 
         [HttpPost("login")]
@@ -46,18 +49,12 @@ namespace hotel_and_resort.Controllers
             var result = await _signInManager.PasswordSignInAsync(user.UserName, loginDto.Password, false, false);
             if (result.Succeeded)
             {
-                await _signInManager.SignInAsync(user, new AuthenticationProperties { IsPersistent = false });
-                return Ok(new { Message = "Login successful", UserId = user.Id });
+                var roles = await _userManager.GetRolesAsync(user);
+                var token = _tokenService.GenerateToken(user, roles);
+                return Ok(new { Message = "Login successful", UserId = user.Id, Token = token, Roles = roles });
             }
 
             return Unauthorized("Invalid login attempt.");
-        }
-
-        [HttpPost("logout")]
-        public async Task<IActionResult> Logout()
-        {
-            await _signInManager.SignOutAsync();
-            return Ok(new { Message = "Logout successful" });
         }
 
         [HttpPost("register")]
@@ -74,12 +71,26 @@ namespace hotel_and_resort.Controllers
             var result = await _userManager.CreateAsync(user, registerDto.Password);
             if (result.Succeeded)
             {
-                await _userManager.AddToRoleAsync(user, registerDto.Role ?? "Guest");
-                return Ok(new { Message = "User registered successfully" });
+                var role = registerDto.Role ?? "Guest";
+                if (!new[] { "Admin", "Staff", "Guest" }.Contains(role))
+                {
+                    return BadRequest("Invalid role. Must be Admin, Staff, or Guest.");
+                }
+                await _userManager.AddToRoleAsync(user, role);
+                return Ok(new { Message = "User registered successfully", Role = role });
             }
 
             return BadRequest(result.Errors);
         }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            await _signInManager.SignOutAsync();
+            return Ok(new { Message = "Logout successful" });
+        }
+
+       
 
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)

@@ -72,6 +72,10 @@ namespace hotel_and_resort.Models
         Task<Room> AddRoom(Room room);
         Task<Room> UpdateRoom(Room room);
         Task<Room> DeleteRoom(int id);
+        Task<bool> IsRoomAvailable(int roomId, DateTime checkIn, DateTime checkOut);
+        Task UpdateRoomAvailability(int roomId);
+
+
 
         // Booking Methods
         Task<List<Booking>> GetBookings();
@@ -85,6 +89,8 @@ namespace hotel_and_resort.Models
         Task<Payment> GetPayment(int id);
         Task<Payment> AddPayment(Payment payment);
         Task<Payment> DeletePayment(int id);
+        Task<Payment> ProcessPaymentAndUpdateBooking(int bookingId, int amount, string paymentToken);
+
 
         
         // Amenities Methods

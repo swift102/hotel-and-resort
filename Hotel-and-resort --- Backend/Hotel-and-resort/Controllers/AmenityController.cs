@@ -65,6 +65,14 @@ namespace hotel_and_resort.Controllers
                     return NotFound();
                 }
 
+                var amenities = await _amenityService.GetAmenitiesAsync();
+                var amenityListDTOs = amenities.Select(a => new AmenityListDTO
+                {
+                    Id = a.Id,
+                    Name = a.Name,
+                    Description = a.Description
+                }).ToList();
+
                 var amenityDetailsDTO = new AmenityDetailsDTO
                 {
                     Id = amenity.Id,
@@ -76,7 +84,6 @@ namespace hotel_and_resort.Controllers
                         Name = r.Name
                     }).ToList()
                 };
-
                 return Ok(amenityDetailsDTO);
             }
             catch (Exception ex)

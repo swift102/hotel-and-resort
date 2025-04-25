@@ -23,7 +23,6 @@ using System.Text;
 using Hotel_and_resort.Services.hotel_and_resort.Services;
 using hotel_and_resort.Services;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add Stripe configuration
@@ -52,6 +51,22 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
 });
+
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+    });
 
 
 // Add services to the container.
@@ -83,6 +98,8 @@ builder.Services.AddScoped<AmenityService>();
 //builder.Services.AddScoped<CustomerService>();
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
 builder.Services.AddSingleton(resolver => resolver.GetRequiredService<IOptions<SmtpSettings>>().Value);
+builder.Services.AddSingleton(builder.Configuration);
+var service = new PaymentIntentService(new StripeClient(builder.Configuration["Stripe:SecretKey"]));
 
 
 builder.Services.AddScoped<ISmsSenderService>(provider =>

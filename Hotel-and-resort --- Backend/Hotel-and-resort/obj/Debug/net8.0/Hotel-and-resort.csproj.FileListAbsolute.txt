@@ -344,3 +344,10 @@ C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\H
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\bin\Debug\net8.0\Microsoft.AspNetCore.WebUtilities.dll
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\bin\Debug\net8.0\Microsoft.Net.Http.Headers.dll
+C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\bin\Debug\net8.0\xunit.abstractions.dll
+C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\bin\Debug\net8.0\xunit.runner.visualstudio.testadapter.dll
+C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\bin\Debug\net8.0\Castle.Core.dll
+C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\bin\Debug\net8.0\Moq.dll
+C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\bin\Debug\net8.0\xunit.assert.dll
+C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\bin\Debug\net8.0\xunit.core.dll
+C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\bin\Debug\net8.0\xunit.execution.dotnet.dll
