@@ -102,118 +102,127 @@ footer {
       text-align: center;
     }
   }
-  
-  
-/* Testimonials Section */
+ /* Testimonials Section */
 .testimonials {
-    padding: 50px 0;
-    background-color: #f7f8fa;
-}
+  padding: 50px 0;
+  background: linear-gradient(135deg, #ffffff, #f7f8fa);
+  text-align: center;
+  margin-bottom: 0; /* Ensure no extra bottom margin */
+  padding-bottom: 0; /* Removed extra padding at the bottom */
 
-.testimonials .testimonial-container {
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    font-weight: bold;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 30px;
+  }
+
+  .testimonial-container {
     display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
+    justify-content: center;
     gap: 20px;
-}
+    flex-wrap: wrap;
+  }
 
-.testimonial {
+  .testimonial {
     background: white;
-    border-radius: 8px;
+    border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     padding: 20px;
     text-align: center;
-    flex: 1;
-    max-width: 300px;
+    flex: 1 1 300px;
+    max-width: 320px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      margin-bottom: 10px;
+    }
+
+    .name {
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+
+    .rating {
+      color: #fbc02d;
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 0.9rem;
+      color: #555;
+      line-height: 1.5;
+    }
+  }
 }
 
-.testimonial img {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    margin-bottom: 10px;
+/* SERVICES */
+.services-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Three items per row */
+  gap: 20px;
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  margin-top: 0; /* Ensure no top margin */
+  padding-top: 0; /* Removed extra padding at the top */
 }
 
-.testimonial .name {
-    font-weight: bold;
-    margin: 10px 0;
+.service-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
-.testimonial .rating {
-    color: #fbc02d;
-    font-size: 18px;
-    margin-bottom: 10px;
+.service-icon {
+  width: 40px;
+  height: 40px;
 }
 
-/* Contact Us Section */
-.contact {
-    background-color: white;
-    padding: 50px 0;
+.service-title {
+  font-weight: bold;
+  font-size: 1.2rem;
 }
 
-.contact-container {
-    display: flex;
-    gap: 20px;
-    justify-content: space-between;
-    flex-wrap: wrap;
+.service-description {
+  font-size: 1rem;
+  color: #555;
 }
 
-.contact-info {
-    background-color: #336699;
-    color: white;
-    padding: 20px;
-    border-radius: 8px;
-    flex: 1;
-    min-width: 300px;
-}
 
-.contact-info h3 {
-    margin-bottom: 15px;
-}
+/*GALLERY SECTION*/
 
-.contact-info p {
-    margin: 10px 0;
-}
-
-.contact-info p span {
-    display: block;
-}
-
-.contact-form {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    flex: 2;
-    min-width: 300px;
-    padding: 20px;
-}
-
-.contact-form input, .contact-form textarea {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.contact-form button {
-    background-color: #336699;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.contact-form button:hover {
-    background-color: #254d73;
-}
 .gallery-section {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     grid-gap: 2rem;
     margin: 2rem 0;
   }
+  h3 {
+    font-size: 2.5rem; /* Increase size for emphasis */
+    font-weight: 700; /* Bold for prominence */
+    color: #2c3e50; /* Elegant dark shade */
+    text-align: center; /* Center align */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+    margin-bottom: 1.5rem; /* Add more spacing below */
+    font-family: 'Playfair Display', serif; /* Use a sophisticated font */
+  }
+  
   
   .gallery-item {
     position: relative;
@@ -238,26 +247,40 @@ footer {
     bottom: 0;
     left: 0;
     width: 100%;
-    background-color: rgba(255, 255, 255, 0.8);
-    padding: 1rem;
-    transition: transform 0.3s ease-in-out;
+    background: rgba(0, 0, 0, 0.6); /* Darker background for better contrast */
+    color: #fff; /* White text for visibility */
+    padding: 1.5rem;
+    transition: transform 0.3s ease-in-out, background 0.3s ease;
+    border-bottom-left-radius: 0.5rem; /* Match border-radius */
+    border-bottom-right-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
   
   .gallery-item:hover .item-content {
     transform: translateY(0);
+    background: rgba(0, 0, 0, 0.8); /* Slightly darker on hover for emphasis */
   }
   
   .item-content h3 {
     margin-top: 0;
-    font-size: 1.25rem;
+    font-size: 1.5rem; /* Slightly increase the size */
     font-weight: bold;
+    color: #ffffff; /* Set to white for better contrast */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); /* Add a stronger shadow */
+    font-family: 'Playfair Display', serif; /* Optional: Use an elegant font */
+  }
+  .item-content p {
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
   }
   
   .item-content p {
     margin-bottom: 0;
     font-size: 1rem;
-    color: #555;
+    line-height: 1.6; /* Improve readability */
   }
+  
+
+
 /* Navbar Styles */
 header {
     background-color: #ffffff;
@@ -495,3 +518,7 @@ section {
   .h-screen {
     height: 100vh;
   }
+
+
+
+  

@@ -1,0 +1,24 @@
+<!-- Date Selection -->
+<div class="check-in-out-container">
+    <div class="date-selection">
+         <div class="check-in">
+          <label>Check-in</label>
+          <input type="date" [(ngModel)]="checkInDate" (change)="updateDuration()">
+        </div>
+        <div class="check-out">
+           <label>Check-out</label>
+          <input type="date" [(ngModel)]="checkOutDate" (change)="updateDuration()">
+        </div>
+    </div>
+    <div class="duration">{{ duration }} NIGHT(S)</div>
+    <button class="check-availability" (click)="checkAvailability()">CHECK AVAILABILITY</button>
+    <button class="view-calendar" (click)="viewCalendar()">VIEW CALENDAR</button>
+</div>
+<div class="room-details-container" *ngFor="let room of rooms">
+    <h3>{{ room.type }}</h3>
+    <p>{{ room.description }}</p>
+    <button class="show-more">SHOW MORE</button>
+    <div class="guest-info">Max Guests: {{ room.maxGuests }} (Max {{ room.maxGuests }} adults)</div>
+    <div class="price">From R{{ room.price }}.00 <span>Per night for 2 adults</span></div>
+    <button class="view-rates">VIEW RATES AND BOOK</button>
+  </div>

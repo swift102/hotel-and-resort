@@ -13,7 +13,7 @@
 
         // Navigation properties
         public Customer Customer { get; set; }
-        public ICollection<Room> Rooms { get; set; }
+        public Room Room { get; set; }
         public ICollection<Payment> Payments { get; set; }
 
     }

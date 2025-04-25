@@ -1,0 +1,104 @@
+<!--LUXURY SUITE -->
+<div class="room-section">
+  <div class="room-image">
+    <img src="assets/lux room.jpg" alt="Luxury Suite">
+  </div>
+  <div class="room-details">
+    <h3>Luxury Suite</h3>
+    <p>40% larger room with sitting area plus an 8 m² sunny private balcony.</p>
+    <button class="read-more" (click)="openRoomDetails('luxury-suite')">Read More</button>
+  </div>
+</div>
+
+
+
+<!-- DELUXE SUITE -->
+<div class="room-section">
+  <div class="room-image">
+    <img src="assets/Delux room.jpg" alt="Deluxe Suite">
+  </div>
+  <div class="room-details">
+    <h3>Deluxe Suite</h3>
+    <p>Bright and sunny en-suite rooms with private sunny balcony.</p>
+    <button class="read-more" (click)="openRoomDetails('deluxe-suite')">Read More</button>
+  </div>
+</div>
+
+
+
+  <!--PREMIUM SUITE -->
+<div class="room-section">
+  <div class="room-image">
+    <img src="assets/inside 1.jpg" alt="Balcony En-Suite Room">
+  </div>
+    <div class="room-details">
+      <h2>Premium Suite</h2>
+      <p>King or Twin en-suite rooms. Please specify bed preference in the request section. This twin/double room features air conditioning, a bathrobe and cable TV.</p>
+      <button class="read-more" (click)="openRoomDetails('premium-suite')">Read More</button>
+    </div>
+  </div>
+
+
+  
+ <!-- Room Details Popup -->
+<div class="room-details-popup" *ngIf="selectedRoom">
+  <div class="popup-content">
+    <!-- Close Button -->
+    <span class="close-button" (click)="closeRoomDetails()">&times;</span>
+    <h2>{{ selectedRoom | titlecase }}</h2>
+
+    <div class="popup-layout">
+      <!-- Slideshow Section -->
+      <div class="slideshow-container">
+        <div
+          class="slideshow-image"
+          *ngFor="let image of roomDetails.images; let i = index"
+          [ngClass]="{ active: i === currentImage }"
+        >
+          <img [src]="image.src" [alt]="image.alt">
+        </div>
+        <!-- Slideshow Navigation -->
+        <button class="prev" (click)="changeSlide(-1)">&#10094;</button>
+        <button class="next" (click)="changeSlide(1)">&#10095;</button>
+      </div>
+
+      <!-- Description and Amenities Section -->
+      <div class="details-section">
+        <div class="room-description">
+          <h3>Room Description</h3>
+          <p>{{ roomDetails.description }}</p>
+        </div>
+        <div class="amenities">
+          <h3>Amenities</h3>
+          <div class="amenities-list">
+            <h4>Bathroom Amenities</h4>
+            <ul>
+              <li *ngFor="let item of roomDetails.amenities.bathroom">{{ item }}</li>
+            </ul>
+            <h4>Bedroom Amenities</h4>
+            <ul>
+              <li *ngFor="let item of roomDetails.amenities.bedroom">{{ item }}</li>
+            </ul>
+            <h4>Other Amenities</h4>
+            <ul>
+              <li *ngFor="let item of roomDetails.amenities.other">{{ item }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+
+  <!-- <div class="room-navigation">
+    <a (click)="navigateToRoom('superior-with-balcony')">Superior with Balcony</a>
+    <a (click)="navigateToRoom('balcony-en-suite')">Balcony En-Suite Rooms</a>
+    <a (click)="navigateToRoom('standard-en-suite')">Standard En-Suite Rooms</a>
+  </div>
+  
+  <div class="booking-actions">
+    <button (click)="bookRoom()">Book Now</button>
+    <button (click)="contactUs()">Contact Us</button>
+  </div> -->

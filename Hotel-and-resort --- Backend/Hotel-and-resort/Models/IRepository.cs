@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Hotel_and_resort.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -6,6 +7,12 @@ namespace hotel_and_resort.Models
 {
     public interface IRepository
     {
+        void Add<T>(T entity) where T : class;
+        void Delete<T>(T entity) where T : class;
+        Task<bool> SaveChangesAsync();
+        void Update<T>(T entity) where T : class;
+
+
         // Customer Methods
         Task<List<Customer>> GetCustomers();
         Task<Customer> GetCustomerById(int id);
@@ -49,8 +56,12 @@ namespace hotel_and_resort.Models
             Task<Image> AddImage(Image image);
             Task<Image> UpdateImage(Image image);
             Task<Image> DeleteImage(int id);
-            Task SaveChangesAsync();
+         
+        Task<UserProfile> GetUserProfileByID(int userProfileId);
 
+        Task<User> GetUserByUsernameAsync(string username);
+
+        //Task<UserSession> GetUserSessionByIdAsync(string sessionId);
 
         // Image Methods
         //Task<List<Image>> GetImages();
@@ -59,6 +70,6 @@ namespace hotel_and_resort.Models
         //Task<Image> DeleteImage(int id);
 
 
-    
+
     }
 }

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\WESLEY\\Downloads\\HR\\Hotel-and-resort\\Hotel-and-resort\\Hotel-and-resort.csproj": {}
+    "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj": {}
   },
   "projects": {
-    "C:\\Users\\WESLEY\\Downloads\\HR\\Hotel-and-resort\\Hotel-and-resort\\Hotel-and-resort.csproj": {
+    "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\WESLEY\\Downloads\\HR\\Hotel-and-resort\\Hotel-and-resort\\Hotel-and-resort.csproj",
+        "projectUniqueName": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
         "projectName": "Hotel-and-resort",
-        "projectPath": "C:\\Users\\WESLEY\\Downloads\\HR\\Hotel-and-resort\\Hotel-and-resort\\Hotel-and-resort.csproj",
+        "projectPath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
         "packagesPath": "C:\\Users\\WESLEY\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\WESLEY\\Downloads\\HR\\Hotel-and-resort\\Hotel-and-resort\\obj\\",
+        "outputPath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -50,19 +50,43 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[8.0.3, )"
+            },
+            "Microsoft.AspNetCore.Identity.UI": {
+              "target": "Package",
+              "version": "[8.0.3, )"
+            },
+            "Microsoft.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[8.0.3, )"
+            },
             "Microsoft.EntityFrameworkCore.SqlServer": {
               "target": "Package",
-              "version": "[9.0.1, )"
+              "version": "[8.0.3, )"
             },
             "Microsoft.EntityFrameworkCore.Tools": {
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
               "suppressParent": "All",
               "target": "Package",
-              "version": "[9.0.1, )"
+              "version": "[8.0.3, )"
+            },
+            "Microsoft.Extensions.Identity.Core": {
+              "target": "Package",
+              "version": "[8.0.3, )"
+            },
+            "Microsoft.Extensions.Identity.Stores": {
+              "target": "Package",
+              "version": "[8.0.3, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
-              "version": "[6.6.2, )"
+              "version": "[7.2.0, )"
+            },
+            "Vonage": {
+              "target": "Package",
+              "version": "[7.16.0, )"
             }
           },
           "imports": [
