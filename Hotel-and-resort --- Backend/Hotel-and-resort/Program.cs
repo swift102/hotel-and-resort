@@ -15,8 +15,58 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Vonage;
 using Vonage.Request;
+using Microsoft.OpenApi.Models;
+using Stripe;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Hotel_and_resort.Services.hotel_and_resort.Services;
+using hotel_and_resort.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Add Stripe configuration
+StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
+
+// Add JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]);
+
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(key)
+    };
+});
+
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+    });
 
 
 // Add services to the container.
@@ -24,16 +74,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
         sqlOptions =>
         {
-            sqlOptions.CommandTimeout(180); // Set 180 seconds timeout
-            sqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 5,              // Maximum retry attempts
-                maxRetryDelay: TimeSpan.FromSeconds(30),  // Max delay between retries
-                errorNumbersToAdd: null        // Retry on all transient errors
-            );
+            sqlOptions.CommandTimeout(180);
+            sqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
         })
-    .EnableSensitiveDataLogging() // Enable detailed logging
-    .LogTo(Console.WriteLine, LogLevel.Information) // Log to console
-);
+    .LogTo(Console.WriteLine, LogLevel.Information)
+    .EnableSensitiveDataLogging(builder.Environment.IsDevelopment()));
 
 
 // Add Identity services
@@ -48,8 +93,13 @@ builder.Services.AddIdentity<User, IdentityRole>()
 builder.Services.AddScoped<IRepository, Repository>();
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.AddSingleton<IEmailSender, EmailSender>();
+builder.Services.AddScoped<RoomService>();
+builder.Services.AddScoped<AmenityService>();
+//builder.Services.AddScoped<CustomerService>();
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
 builder.Services.AddSingleton(resolver => resolver.GetRequiredService<IOptions<SmtpSettings>>().Value);
+builder.Services.AddSingleton(builder.Configuration);
+var service = new PaymentIntentService(new StripeClient(builder.Configuration["Stripe:SecretKey"]));
 
 
 builder.Services.AddScoped<ISmsSenderService>(provider =>
@@ -62,23 +112,28 @@ builder.Services.AddScoped<ISmsSenderService>(provider =>
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Hotel API", Version = "v1" });
+});
+
+builder.Services.AddAuthorization();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-//app.UseStaticFiles(); // Ensure this is added before app.UseRouting()
-
+app.UseCors("AllowAll");
 app.UseHttpsRedirection();
-
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

@@ -1,5 +1,17 @@
-﻿namespace hotel_and_resort.Models
+﻿using hotel_and_resort.Models;
+
+namespace hotel_and_resort.Models
 {
+
+    public enum BookingStatus
+    {
+        Pending,
+        Confirmed,
+        Cancelled,
+        Completed,
+        Refunded
+    }
+
     public class Booking
     {
         public int Id { get; set; }
@@ -7,8 +19,9 @@
         public int CustomerId { get; set; }
         public DateTime CheckIn { get; set; }
         public DateTime CheckOut { get; set; }
-        public int TotalPrice { get; set; }
-        public string ?Status { get; set; }
+        public decimal TotalPrice { get; set; }
+        public BookingStatus Status { get; set; } // Add this property
+        public bool IsRefundable { get; set; } // New field
 
 
         // Navigation properties
@@ -18,3 +31,5 @@
 
     }
 }
+
+

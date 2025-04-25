@@ -6,6 +6,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using hotel_and_resort.ViewModels;
 using static hotel_and_resort.ViewModels.AmenitiesDTOs;
+using hotel_and_resort.Services;
+using System.ComponentModel.DataAnnotations;
+
 
 namespace hotel_and_resort.Controllers
 {
@@ -13,23 +16,22 @@ namespace hotel_and_resort.Controllers
     [ApiController]
     public class AmenityController : ControllerBase
     {
-        private readonly IRepository _repository;
+        private readonly AmenityService _amenityService;
         private readonly ILogger<AmenityController> _logger;
 
-        public AmenityController(IRepository repository, ILogger<AmenityController> logger)
+        public AmenityController(AmenityService amenityService, ILogger<AmenityController> logger)
         {
-            _repository = repository;
+            _amenityService = amenityService;
             _logger = logger;
         }
 
-        // GET: api/amenities
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<AmenityListDTO>>> GetAmenities()
+        public async Task<ActionResult<IEnumerable<AmenityListDTO>>> GetAmenities(int page = 1, int pageSize = 10)
         {
             try
             {
-                var amenities = await _repository.GetAmenities();
-                if (amenities == null || !amenities.Any())
+                var amenities = await _amenityService.GetAmenitiesAsync(page, pageSize);
+                if (!amenities.Any())
                 {
                     _logger.LogWarning("No amenities found.");
                     return NotFound();
@@ -40,30 +42,36 @@ namespace hotel_and_resort.Controllers
                     Id = a.Id,
                     Name = a.Name,
                     Description = a.Description
-                }).ToList();
+                });
 
                 return Ok(amenityListDTOs);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching amenities");
                 return StatusCode(500, "Internal server error");
             }
         }
 
-
-        // GET: api/amenities/5
         [HttpGet("{id}")]
         public async Task<ActionResult<AmenityDetailsDTO>> GetAmenity(int id)
         {
             try
             {
-                var amenity = await _repository.GetAmenityById(id);
+                var amenity = await _amenityService.GetAmenityByIdAsync(id);
                 if (amenity == null)
                 {
                     _logger.LogWarning("Amenity not found for ID: {Id}", id);
                     return NotFound();
                 }
+
+                var amenities = await _amenityService.GetAmenitiesAsync();
+                var amenityListDTOs = amenities.Select(a => new AmenityListDTO
+                {
+                    Id = a.Id,
+                    Name = a.Name,
+                    Description = a.Description
+                }).ToList();
 
                 var amenityDetailsDTO = new AmenityDetailsDTO
                 {
@@ -72,33 +80,25 @@ namespace hotel_and_resort.Controllers
                     Description = amenity.Description,
                     Rooms = amenity.Rooms.Select(r => new RoomDTO
                     {
-                        Id = r.ID,
-                        //RoomNumber = r.RoomNumber,
-                        //RoomType = r.RoomType
+                        Id = r.Id,
+                        Name = r.Name
                     }).ToList()
                 };
-
                 return Ok(amenityDetailsDTO);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching amenity");
                 return StatusCode(500, "Internal server error");
             }
         }
 
-
-        // POST: api/amenities
         [HttpPost]
-        public async Task<ActionResult<AmenityListDTO>> AddAmenity(AmenityCreateUpdateDTO dto)
+        public async Task<ActionResult<AmenityListDTO>> AddAmenity([FromBody] AmenityCreateUpdateDTO dto)
         {
             try
             {
-                if (string.IsNullOrEmpty(dto.Name))
-                {
-                    _logger.LogWarning("Amenity name is missing.");
-                    return BadRequest("Amenity name is required.");
-                }
+                if (!ModelState.IsValid) return BadRequest(ModelState);
 
                 var newAmenity = new Amenities
                 {
@@ -106,7 +106,7 @@ namespace hotel_and_resort.Controllers
                     Description = dto.Description
                 };
 
-                var addedAmenity = await _repository.AddAmenity(newAmenity);
+                var addedAmenity = await _amenityService.AddAmenityAsync(newAmenity);
 
                 var resultDTO = new AmenityListDTO
                 {
@@ -117,67 +117,69 @@ namespace hotel_and_resort.Controllers
 
                 return CreatedAtAction(nameof(GetAmenity), new { id = addedAmenity.Id }, resultDTO);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error adding amenity");
                 return StatusCode(500, "Internal server error");
             }
         }
 
-
-        // PUT: api/amenities/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateAmenity(int id, AmenityCreateUpdateDTO dto)
+        public async Task<IActionResult> UpdateAmenity(int id, [FromBody] AmenityCreateUpdateDTO dto)
         {
             try
             {
-                var amenityItem = await _repository.GetAmenityById(id);
-                if (amenityItem == null)
-                {
-                    _logger.LogWarning("Amenity not found for ID: {Id}", id);
-                    return NotFound();
-                }
+                if (!ModelState.IsValid) return BadRequest(ModelState);
 
-                // Update fields
-                amenityItem.Name = dto.Name;
-                amenityItem.Description = dto.Description;
-
-                await _repository.UpdateAmenity(amenityItem);
-
-                return NoContent();
-            }
-            catch (System.Exception ex)
-            {
-                _logger.LogError(ex, "Error updating amenity");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-
-        // DELETE: api/amenities/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteAmenity(int id)
-        {
-            try
-            {
-                var amenity = await _repository.GetAmenityById(id);
+                var amenity = await _amenityService.GetAmenityByIdAsync(id);
                 if (amenity == null)
                 {
                     _logger.LogWarning("Amenity not found for ID: {Id}", id);
                     return NotFound();
                 }
 
-                // Use the repository to delete the amenity
-                await _repository.DeleteAmenity(id);
+                amenity.Name = dto.Name;
+                amenity.Description = dto.Description;
 
+                await _amenityService.UpdateAmenityAsync(amenity);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating amenity");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteAmenity(int id)
+        {
+            try
+            {
+                var amenity = await _amenityService.GetAmenityByIdAsync(id);
+                if (amenity == null)
+                {
+                    _logger.LogWarning("Amenity not found for ID: {Id}", id);
+                    return NotFound();
+                }
+
+                await _amenityService.DeleteAmenityAsync(id);
                 _logger.LogInformation("Amenity deleted successfully: {AmenityId}", id);
                 return NoContent();
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting amenity");
                 return StatusCode(500, "Internal server error");
             }
         }
     }
+}
+
+public class AmenityCreateUpdateDTO
+{
+    [Required, MaxLength(100)]
+    public string Name { get; set; }
+    public string? Description { get; set; }
+
 }

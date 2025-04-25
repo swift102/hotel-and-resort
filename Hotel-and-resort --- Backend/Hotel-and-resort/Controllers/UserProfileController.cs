@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Hotel_and_resort.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Hotel_and_resort.Controllers
 {
@@ -53,34 +54,19 @@ namespace Hotel_and_resort.Controllers
         }
 
 
-        [HttpPut("EditUserProfileByID{UserProfileID}")]
+        [HttpPut("EditUserProfileByID/{UserProfileID}")]
         public async Task<IActionResult> EditUserProfile(int UserProfileID, [FromBody] UserProfileDto userProfileDto)
         {
-            var user = await _context.UserProfiles.FindAsync(UserProfileID);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            var userProfile = await _context.UserProfiles.FindAsync(UserProfileID);
+            if (userProfile == null) return NotFound();
 
-            user.UserProfileID = userProfileDto.UserProfileID;
-            user.ProfileDescription = userProfileDto.ProfileDescription;
-            _context.UserProfiles.Update(user);
-
-            var result = await _userManager.FindByIdAsync(user.UserProfileID.ToString());
-            if (result != null)
-            {
-                user.UserProfileID = userProfileDto.UserProfileID;
-                user.ProfileDescription = userProfileDto.ProfileDescription;
-                await _userManager.UpdateAsync(result);
-            }
+            userProfile.ProfileDescription = userProfileDto.ProfileDescription;
+            _context.UserProfiles.Update(userProfile);
 
             var saveResult = await _context.SaveChangesAsync();
-            if (saveResult == 0)
-            {
-                return BadRequest("Failed to update the agent.");
-            }
+            if (saveResult == 0) return BadRequest("Failed to update the profile.");
 
-            return Ok(user);
+            return Ok(userProfile);
         }
 
         [HttpDelete("DeleteUserProfileByID{UserProfileID}")]
@@ -91,6 +77,44 @@ namespace Hotel_and_resort.Controllers
 
             _context.UserProfiles.Remove(userProfile);
             await _context.SaveChangesAsync();
+        }
+
+        [HttpGet("admin/users")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllUsersWithRoles()
+        {
+            var users = await _userManager.Users.ToListAsync();
+            var userDtos = new List<object>();
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                userDtos.Add(new
+                {
+                    user.Id,
+                    user.UserName,
+                    user.Email,
+                    user.Name,
+                    user.Surname,
+                    user.ContactNumber,
+                    user.UserProfileID,
+                    Roles = roles
+                });
+            }
+            return Ok(userDtos);
+        }
+
+        [HttpPut("admin/users/{id}/roles")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateUserRoles(string id, [FromBody] List<string> roles)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound("User not found.");
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            await _userManager.RemoveFromRolesAsync(user, currentRoles);
+            await _userManager.AddToRolesAsync(user, roles);
+
+            return Ok(new { Message = "User roles updated successfully." });
         }
     }
 }
