@@ -23,7 +23,6 @@ namespace hotel_and_resort.Models
         public DbSet<UserProfile> UserProfiles { get; set; }
         public DbSet<User> Users { get; set; }
 
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Many-to-Many: Room <-> Amenity
@@ -35,7 +34,6 @@ namespace hotel_and_resort.Models
                     j => j.HasOne<Amenities>().WithMany().HasForeignKey("AmenitiesID"),
                     j => j.HasOne<Room>().WithMany().HasForeignKey("RoomID"));
 
-
             // One-to-Many: Room -> Image
             modelBuilder.Entity<Room>()
                 .HasMany(r => r.Images)
@@ -43,7 +41,7 @@ namespace hotel_and_resort.Models
                 .HasForeignKey(i => i.RoomID);
 
             // One-to-Many: Booking -> Payment
-              modelBuilder.Entity<Booking>()
+            modelBuilder.Entity<Booking>()
                 .HasMany(b => b.Payments)
                 .WithOne(p => p.Booking)
                 .HasForeignKey(p => p.BookingId);
@@ -54,13 +52,11 @@ namespace hotel_and_resort.Models
                 .WithOne(b => b.Customer)
                 .HasForeignKey(b => b.CustomerId);
 
-
             // One-to-Many: Room -> Reservation
             modelBuilder.Entity<Room>()
                 .HasMany(r => r.Bookings)
                 .WithOne(res => res.Room)
                 .HasForeignKey(res => res.RoomId);
-
 
             // User relationships
             modelBuilder.Entity<User>()
@@ -68,12 +64,13 @@ namespace hotel_and_resort.Models
                 .WithMany(up => up.Users)
                 .HasForeignKey(u => u.UserProfileID);
 
-            // User-UserSession one-to-many relationship
-            //modelBuilder.Entity<User>()
-            //    .HasMany(u => u.UserSessions)
-            //    .WithOne(us => us.User)
-            //    .HasForeignKey(us => us.UserID)
-            //    .OnDelete(DeleteBehavior.Cascade);
+            // Unique indexes for Customer Email and Phone
+            modelBuilder.Entity<Customer>()
+                .HasIndex(c => c.Email)
+                .IsUnique();
+            modelBuilder.Entity<Customer>()
+                .HasIndex(c => c.Phone)
+                .IsUnique();
 
             base.OnModelCreating(modelBuilder);
 

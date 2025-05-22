@@ -1,18 +1,31 @@
-﻿namespace hotel_and_resort.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace hotel_and_resort.Models
 {
     public class Customer
     {
         public int Id { get; set; }
-        public string ?FirstName { get; set; }
-        public string ?LastName { get; set; }
-        public string ?Email { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string FirstName { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string LastName { get; set; }
+
+
+        [Required]
+        [EmailAddress]
+        [MaxLength(256)]
+        public string Email { get; set; }
+
+        [Required]
+        [Phone]
+        [MaxLength(20)]
         public string Phone { get; set; }
-        public string ?Title { get; set; }
-        public string UserId { get; set; }
 
-        // Navigation property
-        public ICollection<Booking> Bookings { get; set; }
-
+        public List<Booking> Bookings { get; set; }
 
     }
 }

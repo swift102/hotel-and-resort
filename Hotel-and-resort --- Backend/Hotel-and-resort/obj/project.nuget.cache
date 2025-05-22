@@ -1,9 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "fmG5AIZQF38=",
+  "dgSpecHash": "jlF17lbYYPs=",
   "success": true,
   "projectFilePath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\WESLEY\\.nuget\\packages\\anglesharp\\0.17.1\\anglesharp.0.17.1.nupkg.sha512",
+    "C:\\Users\\WESLEY\\.nuget\\packages\\anglesharp.css\\0.17.0\\anglesharp.css.0.17.0.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\azure.core\\1.35.0\\azure.core.1.35.0.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\azure.identity\\1.10.3\\azure.identity.1.10.3.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\castle.core\\5.1.1\\castle.core.5.1.1.nupkg.sha512",
@@ -11,6 +13,7 @@
     "C:\\Users\\WESLEY\\.nuget\\packages\\enums.net\\5.0.0\\enums.net.5.0.0.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\fluentvalidation\\11.11.0\\fluentvalidation.11.11.0.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\handy.dotnetcore-compatibility.colortranslations\\0.2.1\\handy.dotnetcore-compatibility.colortranslations.0.2.1.nupkg.sha512",
+    "C:\\Users\\WESLEY\\.nuget\\packages\\htmlsanitizer\\9.0.884\\htmlsanitizer.9.0.884.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\jose-jwt\\5.1.0\\jose-jwt.5.1.0.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\8.0.13\\microsoft.aspnetcore.authentication.jwtbearer.8.0.13.nupkg.sha512",
@@ -98,6 +101,7 @@
     "C:\\Users\\WESLEY\\.nuget\\packages\\swashbuckle.aspnetcore.swagger\\7.2.0\\swashbuckle.aspnetcore.swagger.7.2.0.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\swashbuckle.aspnetcore.swaggergen\\7.2.0\\swashbuckle.aspnetcore.swaggergen.7.2.0.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\swashbuckle.aspnetcore.swaggerui\\7.2.0\\swashbuckle.aspnetcore.swaggerui.7.2.0.nupkg.sha512",
+    "C:\\Users\\WESLEY\\.nuget\\packages\\system.buffers\\4.5.1\\system.buffers.4.5.1.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\system.codedom\\4.4.0\\system.codedom.4.4.0.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\system.collections\\4.3.0\\system.collections.4.3.0.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\system.collections.concurrent\\4.3.0\\system.collections.concurrent.4.3.0.nupkg.sha512",
