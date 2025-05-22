@@ -48,6 +48,26 @@ namespace hotel_and_resort.Services
             }
         }
 
+        public async Task<Customer?> GetCustomerByEmailAsync(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                _logger.LogWarning("Invalid email provided for lookup.");
+                throw new ArgumentException("Email cannot be null or empty.", nameof(email));
+            }
+
+            try
+            {
+                return await _context.Customers
+                    .FirstOrDefaultAsync(c => c.Email == email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching customer with email {Email}", email);
+                throw new CustomerServiceException($"Failed to retrieve customer with email {email}.", ex);
+            }
+        }
+
         public async Task<Customer> AddCustomerAsync(Customer customer)
         {
             if (customer == null)

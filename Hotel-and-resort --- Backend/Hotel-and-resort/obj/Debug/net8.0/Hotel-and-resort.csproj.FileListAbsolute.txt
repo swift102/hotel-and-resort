@@ -438,3 +438,6 @@ C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\H
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\ref\Hotel-and-resort.dll
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\staticwebassets.build.json.cache
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
+C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\bin\Debug\net8.0\AngleSharp.dll
+C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\bin\Debug\net8.0\AngleSharp.Css.dll
+C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\bin\Debug\net8.0\HtmlSanitizer.dll

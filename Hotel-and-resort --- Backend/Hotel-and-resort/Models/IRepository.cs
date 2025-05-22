@@ -1,5 +1,6 @@
 ﻿using Hotel_and_resort.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -7,14 +8,7 @@ namespace hotel_and_resort.Models
 {
     public interface IRepository
     {
-        public interface IRepository<T> where T : class
-        {
-            Task<IEnumerable<T>> GetAllAsync();
-            Task<T> GetByIdAsync(int id);
-            Task AddAsync(T entity);
-            Task UpdateAsync(T entity);
-            Task DeleteAsync(int id);
-        }
+    
 
         public class Repository<T> : IRepository<T> where T : class
         {
@@ -73,16 +67,20 @@ namespace hotel_and_resort.Models
         Task<Room> UpdateRoom(Room room);
         Task<Room> DeleteRoom(int id);
         Task<bool> IsRoomAvailable(int roomId, DateTime checkIn, DateTime checkOut);
+
         Task UpdateRoomAvailability(int roomId);
 
 
 
         // Booking Methods
-        Task<List<Booking>> GetBookings();
-        Task<Booking> GetBookingById(int id);
-        Task<Booking> AddBooking(Booking booking);
-        Task<Booking> UpdateBooking(Booking booking);
-        Task<Booking> DeleteBooking(int id);
+        Task<IEnumerable<Booking>> GetAllBookingsAsync(int page, int pageSize);
+        Task<Booking> GetBookingByIdAsync(int id);
+        Task<Booking> AddBookingAsync(Booking booking);
+        Task UpdateBookingAsync(Booking booking);
+ 
+        Task<bool> RoomExistsAsync(int roomId);
+        Task<IDbContextTransaction> BeginTransactionAsync();
+
 
         // Payment Methods
         Task<List<Payment>> GetPayments();
@@ -115,17 +113,18 @@ namespace hotel_and_resort.Models
 
 
         Task<Payment> ProcessPayment(int bookingId, int amount, string paymentToken);
+        //Task BeginTransactionAsync();
 
 
-    //Task<UserSession> GetUserSessionByIdAsync(string sessionId);
+        //Task<UserSession> GetUserSessionByIdAsync(string sessionId);
 
-    // Image Methods
-    //Task<List<Image>> GetImages();
-    //Task<Image> GetImage(int id);
-    //Task<Image> AddImage(Image image);
-    //Task<Image> DeleteImage(int id);
+        // Image Methods
+        //Task<List<Image>> GetImages();
+        //Task<Image> GetImage(int id);
+        //Task<Image> AddImage(Image image);
+        //Task<Image> DeleteImage(int id);
 
 
 
-}
+    }
 }

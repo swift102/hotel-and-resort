@@ -1,5 +1,7 @@
-﻿using hotel_and_resort.DTOs;
+﻿using Ganss.Xss;
+using hotel_and_resort.DTOs;
 using hotel_and_resort.Models;
+using hotel_and_resort.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,259 +17,307 @@ using static hotel_and_resort.ViewModels.AmenitiesDTOs;
 
 namespace hotel_and_resort.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/bookings")]
     [ApiController]
     public class BookingController : ControllerBase
     {
-        private readonly AppDbContext _context;
         private readonly IRepository _repository;
-        private readonly ILogger<BookingController> _logger;
+        private readonly CustomerService _customerService;
         private readonly IEmailSender _emailSender;
-        private readonly IMemoryCache _cache;
+        private readonly ISmsSenderService _smsSender;
+        private readonly ILogger<BookingController> _logger;
+        private readonly HtmlSanitizer _sanitizer;
 
-        public BookingController(AppDbContext context, IRepository repository, ILogger<BookingController> logger, IEmailSender emailSender, IMemoryCache cache)
+        public BookingController(
+            IRepository repository,
+            CustomerService customerService,
+            IEmailSender emailSender,
+            ISmsSenderService smsSender,
+            ILogger<BookingController> logger)
         {
-            _context = context;
             _repository = repository;
+            _customerService = customerService;
             _emailSender = emailSender;
-            _cache = cache;
+            _smsSender = smsSender;
             _logger = logger;
+            _sanitizer = new HtmlSanitizer();
         }
 
-
         [HttpPost]
-        public async Task<ActionResult<List<Booking>>> CreateBooking([FromBody] BookingCreateDTO bookingDto)
+        [Authorize]
+        public async Task<ActionResult<Booking>> CreateBooking([FromBody] BookingCreateDTO bookingDto)
         {
+            if (bookingDto == null)
+            {
+                _logger.LogWarning("Null booking data provided.");
+                return BadRequest(new { Error = "Booking data cannot be null." });
+            }
+
             if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Invalid booking data provided.");
                 return BadRequest(ModelState);
+            }
 
             try
             {
-                var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == bookingDto.CustomerEmail);
+                // Sanitize inputs
+                bookingDto.CustomerFirstName = _sanitizer.Sanitize(bookingDto.CustomerFirstName);
+                bookingDto.CustomerLastName = _sanitizer.Sanitize(bookingDto.CustomerLastName);
+                bookingDto.CustomerEmail = _sanitizer.Sanitize(bookingDto.CustomerEmail);
+                bookingDto.CustomerPhone = _sanitizer.Sanitize(bookingDto.CustomerPhone);
+
+                // Validate dates
+                if (bookingDto.CheckIn < DateTime.Today)
+                {
+                    _logger.LogWarning("Check-in date cannot be in the past.");
+                    return BadRequest(new { Error = "Check-in date cannot be in the past." });
+                }
+                if (bookingDto.CheckOut <= bookingDto.CheckIn)
+                {
+                    _logger.LogWarning("Check-out date must be after check-in date.");
+                    return BadRequest(new { Error = "Check-out date must be after check-in date." });
+                }
+
+                // Validate RoomId
+                var roomExists = await _repository.RoomExistsAsync(bookingDto.RoomId);
+                if (!roomExists)
+                {
+                    _logger.LogWarning("Room not found: {RoomId}", bookingDto.RoomId);
+                    return NotFound(new { Error = $"Room with ID {bookingDto.RoomId} not found." });
+                }
+
+                // Get or create customer
+                var customer = await _customerService.GetCustomerByEmailAsync(bookingDto.CustomerEmail);
                 if (customer == null)
                 {
-                    customer = new Customer
+                    customer = await _customerService.AddCustomerAsync(new Customer
                     {
                         FirstName = bookingDto.CustomerFirstName,
                         LastName = bookingDto.CustomerLastName,
                         Email = bookingDto.CustomerEmail,
-                        Phone = bookingDto.CustomerPhone,
-                        Title = bookingDto.CustomerTitle,
-                        UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value // Link to user if authenticated
-                    };
-                    await _repository.AddCustomer(customer);
+                        Phone = bookingDto.CustomerPhone
+                    });
                 }
 
-                var nights = (bookingDto.CheckOut - bookingDto.CheckIn).Days;
-                if (nights <= 0)
-                    return BadRequest(new { Error = "Invalid booking duration." });
-
-                var bookings = new List<Booking>();
-                decimal totalPrice = 0;
-
-                foreach (var roomBooking in bookingDto.Rooms)
+                // Check user ownership
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!User.IsInRole("Admin") && customer.Id.ToString() != userId)
                 {
-                    var room = await _context.Rooms.FindAsync(roomBooking.Id); 
-                    if (room == null)
-                        return NotFound(new { Error = $"Room {roomBooking.Id} not found." });
-
-                    var isAvailable = await _repository.IsRoomAvailable(roomBooking.Id, bookingDto.CheckIn, bookingDto.CheckOut);
-                    if (!isAvailable)
-                        return BadRequest(new { Error = $"Room {roomBooking.Id} not available." });
-
-             
-                    for (int i = 0; i < bookingDto.Rooms.Count; i++)
-                    {
-                        var booking = new Booking
-                        {
-                            RoomId = roomBooking.Id,
-                            CustomerId = customer.Id,
-                            CheckIn = bookingDto.CheckIn,
-                            CheckOut = bookingDto.CheckOut,
-                            TotalPrice = room.Price * nights,
-                            Status = BookingStatus.Pending,
-                            IsRefundable = bookingDto.IsRefundable
-                        };
-                        bookings.Add(booking);
-                        totalPrice += booking.TotalPrice;
-                    }
+                    _logger.LogWarning("Unauthorized booking attempt by user {UserId} for customer {CustomerId}", userId, customer.Id);
+                    return Forbid();
                 }
 
-                foreach (var booking in bookings)
-                    await _repository.AddBooking(booking);
+                // Begin transaction
+                using var transaction = await _repository.BeginTransactionAsync();
+                try
+                {
+                    // Check room availability
+                    var isAvailable = await _repository.IsRoomAvailable(bookingDto.RoomId, bookingDto.CheckIn, bookingDto.CheckOut);
+                    if (!isAvailable)
+                    {
+                        _logger.LogWarning("Room {RoomId} is not available for dates {CheckIn} to {CheckOut}",
+                            bookingDto.RoomId, bookingDto.CheckIn, bookingDto.CheckOut);
+                        return Conflict(new { Error = "Room is not available for the selected dates." });
+                    }
 
-                await _emailSender.SendBookingConfirmationEmailAsync(customer.Email, bookings.First(), await _context.Rooms.FindAsync(bookings.First().RoomId));
-                _logger.LogInformation("Created {BookingCount} bookings for customer {Email}", bookings.Count, customer.Email);
+                    var booking = new Booking
+                    {
+                        RoomId = bookingDto.RoomId,
+                        CustomerId = customer.Id,
+                        CheckIn = bookingDto.CheckIn,
+                        CheckOut = bookingDto.CheckOut,
+                        Status = BookingStatus.Pending,
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-                return CreatedAtAction(nameof(GetBooking), new { id = bookings.First().Id }, bookings);
+                    var addedBooking = await _repository.AddBookingAsync(booking);
+                    await transaction.CommitAsync();
+
+                    // Publish event (for extensibility)
+                    await PublishBookingCreatedEvent(addedBooking);
+
+                    // Send notifications
+                    await SendBookingConfirmation(customer, addedBooking);
+
+                    _logger.LogInformation("Booking created: {BookingId} for customer {CustomerId}", addedBooking.Id, customer.Id);
+                    return CreatedAtAction(nameof(GetBooking), new { id = addedBooking.Id }, addedBooking);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
+            catch (CustomerValidationException ex)
+            {
+                _logger.LogWarning("Invalid customer data: {Message}", ex.Message);
+                return BadRequest(new { Error = ex.Message });
+            }
+            catch (DuplicateCustomerException ex)
+            {
+                _logger.LogWarning("Duplicate customer error: {Message}", ex.Message);
+                return Conflict(new { Error = ex.Message });
+            }
+            catch (CustomerServiceException ex)
+            {
+                _logger.LogError(ex, "Error creating customer for booking with email {Email}", bookingDto.CustomerEmail);
+                return StatusCode(500, new { Error = ex.Message });
+            }
+            catch (BookingConflictException ex)
+            {
+                _logger.LogWarning("Booking conflict: {Message}", ex.Message);
+                return Conflict(new { Error = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating multi-room booking");
-                return StatusCode(500, new { Error = "Internal server error" });
+                _logger.LogError(ex, "Error creating booking for room {RoomId}", bookingDto.RoomId);
+                return StatusCode(500, new { Error = "Failed to create booking." });
             }
         }
 
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<Booking>> GetBooking(int id)
         {
             try
             {
-                var booking = await _repository.GetBookingById(id);
+                var booking = await _repository.GetBookingByIdAsync(id);
                 if (booking == null)
                 {
-                    _logger.LogWarning("Booking {BookingId} not found", id);
-                    return NotFound(new { Error = "Booking not found." });
+                    _logger.LogWarning("Booking not found: {BookingId}", id);
+                    return NotFound(new { Error = $"Booking with ID {id} not found." });
                 }
+
+                // Restrict to admin or booking owner
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!User.IsInRole("Admin") && booking.CustomerId.ToString() != userId)
+                {
+                    _logger.LogWarning("Unauthorized access to booking {BookingId} by user {UserId}", id, userId);
+                    return Forbid();
+                }
+
                 return Ok(booking);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching booking {BookingId}", id);
-                return StatusCode(500, new { Error = "Internal server error" });
+                _logger.LogError(ex, "Error fetching booking with ID {BookingId}", id);
+                return StatusCode(500, new { Error = "Failed to retrieve booking." });
             }
         }
-
 
         [HttpGet("admin/bookings")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<IEnumerable<Booking>>> GetAllBookings()
+        public async Task<ActionResult<IEnumerable<Booking>>> GetAllBookings(int page = 1, int pageSize = 10)
         {
             try
             {
-                var bookings = await _context.Bookings
-                    .Include(b => b.Customer)
-                    .Include(b => b.Room)
-                    .Include(b => b.Payments)
-                    .ToListAsync();
-                _logger.LogInformation("Admin retrieved {BookingCount} bookings", bookings.Count);
+                var bookings = await _repository.GetAllBookingsAsync(page, pageSize);
                 return Ok(bookings);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching all bookings for admin");
-                return StatusCode(500, new { Error = "Internal server error" });
+                _logger.LogError(ex, "Error fetching bookings, page {Page}, pageSize {PageSize}", page, pageSize);
+                return StatusCode(500, new { Error = "Failed to retrieve bookings." });
             }
         }
 
-        [HttpGet("GetBookings")]
-        public async Task<ActionResult<IEnumerable<Booking>>> GetBookings()
-        {
-            try
-            {
-                var bookings = await _repository.GetBookings();
-                _logger.LogInformation("Retrieved {BookingCount} bookings", bookings.Count);
-                return Ok(bookings);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching bookings");
-                return StatusCode(500, new { Error = "Internal server error" });
-            }
-        }
-
-        [HttpPut("admin/bookings/{id}/status")]
+        [HttpPut("{id}/status")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateBookingStatus(int id, [FromBody] BookingStatusDTO statusDto)
         {
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Invalid booking status data provided.");
+                return BadRequest(ModelState);
+            }
+
             try
             {
-                var booking = await _context.Bookings.FindAsync(id);
+                var booking = await _repository.GetBookingByIdAsync(id);
                 if (booking == null)
                 {
-                    _logger.LogWarning("Booking {BookingId} not found for status update", id);
-                    return NotFound(new { Error = "Booking not found." });
+                    _logger.LogWarning("Booking not found: {BookingId}", id);
+                    return NotFound(new { Error = $"Booking with ID {id} not found." });
                 }
 
                 booking.Status = statusDto.Status;
-                if (statusDto.Status == BookingStatus.Cancelled && booking.IsRefundable)
-                {
-                    var payment = await _context.Payments
-                        .Where(p => p.BookingId == id && p.Status == PaymentStatus.Completed)
-                        .FirstOrDefaultAsync();
-                    if (payment != null)
-                    {
-                        payment.Status = PaymentStatus.Refunded;
-                        // TODO: Initiate refund via PayFast API (requires PayFast refund API integration)
-                        _logger.LogInformation("Marked payment {PaymentId} as refunded for Booking {BookingId}", payment.Id, id);
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-                await _repository.UpdateRoomAvailability(booking.RoomId);
-                _logger.LogInformation("Admin updated Booking {BookingId} status to {Status}", id, statusDto.Status);
+                await _repository.UpdateBookingAsync(booking);
+                _logger.LogInformation("Booking status updated: {BookingId} to {Status}", id, statusDto.Status);
                 return NoContent();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating Booking {BookingId} status", id);
-                return StatusCode(500, new { Error = "Internal server error" });
+                _logger.LogError(ex, "Error updating booking status for ID {BookingId}", id);
+                return StatusCode(500, new { Error = "Failed to update booking status." });
             }
         }
 
-        [HttpGet("available-rooms")]
-        public async Task<ActionResult<IEnumerable<RoomReadDTO>>> GetAvailableRooms([FromQuery] DateTime checkIn, [FromQuery] DateTime checkOut)
+        private async Task PublishBookingCreatedEvent(Booking booking)
         {
-            if (checkIn < DateTime.Today || checkOut <= checkIn)
-            {
-                _logger.LogWarning("Invalid date range: CheckIn={CheckIn}, CheckOut={CheckOut}", checkIn, checkOut);
-                return BadRequest(new { Error = "Invalid date range. Check-in must be today or later, and check-out must be after check-in." });
-            }
+            // Placeholder for event publishing (e.g., via MediatR or event bus)
+            _logger.LogInformation("Published BookingCreatedEvent for booking {BookingId}", booking.Id);
+            // Future: Publish to message queue or event handler
+        }
 
+        private async Task SendBookingConfirmation(Customer customer, Booking booking)
+        {
             try
             {
-                var bookedRoomIds = await _context.Bookings
-                    .Where(b => b.Status != BookingStatus.Cancelled &&
-                                (checkIn <= b.CheckOut && checkOut >= b.CheckIn))
-                    .Select(b => b.RoomId)
-                    .ToListAsync();
+                var emailSubject = "Booking Confirmation";
+                var emailBody = $"<p>Dear {customer.FirstName},</p><p>Your booking (ID: {booking.Id}) for {booking.CheckIn:dd-MM-yyyy} to {booking.CheckOut:dd-MM-yyyy} has been confirmed.</p>";
+                await _emailSender.SendEmailAsync(customer.Email, emailSubject, emailBody);
 
-                var availableRooms = await _context.Rooms
-                    .Where(r => !bookedRoomIds.Contains(r.Id) && r.IsAvailable)
-                    .Include(r => r.Amenities)
-                    .Include(r => r.Images)
-                    .ToListAsync();
-
-                var roomDtos = availableRooms.Select(r => new RoomReadDTO
-                {
-                    Id = r.Id,
-                    Name = r.Name,
-                    Description = r.Description,
-                    Price = r.Price,
-                    Capacity = r.Capacity,
-                    Features = r.Features,
-                    IsAvailable = r.IsAvailable,
-                    Amenities = r.Amenities?.Select(a => new AmenityListDTO
-                    {
-                        Id = a.Id,
-                        Name = a.Name,
-                        Description = a.Description
-                    }).ToList(),
-                    Images = r.Images?.Select(i => new ImageReadDTO
-                    {
-                        Id = i.Id,
-                        Name = i.Name,
-                        ImagePath = i.ImagePath,
-                        RoomID = i.RoomID
-                    }).ToList()
-                }).ToList();
-
-                if (!roomDtos.Any())
-                {
-                    _logger.LogWarning("No available rooms found for dates {CheckIn} to {CheckOut}", checkIn, checkOut);
-                    return NotFound(new { Error = "No available rooms for the selected dates." });
-                }
-
-                _logger.LogInformation("Found {RoomCount} available rooms for dates {CheckIn} to {CheckOut}", roomDtos.Count, checkIn, checkOut);
-                return Ok(roomDtos);
+                var smsMessage = $"Booking {booking.Id} confirmed for {booking.CheckIn:dd-MM-yyyy} to {booking.CheckOut:dd-MM-yyyy}.";
+                await _smsSender.SendSmsAsync(customer.Phone, smsMessage);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching available rooms for dates {CheckIn} to {CheckOut}", checkIn, checkOut);
-                return StatusCode(500, new { Error = "Internal server error" });
+                _logger.LogError(ex, "Error sending booking confirmation to customer {CustomerId}", customer.Id);
+                // Log but don't fail the booking process
             }
         }
     }
 
-   
+    public class BookingCreateDTO
+    {
+        [Required]
+        public int RoomId { get; set; }
+
+        [Required]
+        public DateTime CheckIn { get; set; }
+
+        [Required]
+        public DateTime CheckOut { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string CustomerFirstName { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string CustomerLastName { get; set; }
+
+        [Required]
+        [EmailAddress]
+        [MaxLength(256)]
+        public string CustomerEmail { get; set; }
+
+        [Required]
+        [Phone]
+        [MaxLength(20)]
+        public string CustomerPhone { get; set; }
+    }
+
+    public class BookingStatusDTO
+    {
+        [Required]
+        public BookingStatus Status { get; set; }
+    }
+
+    public class BookingConflictException : Exception
+    {
+        public BookingConflictException(string message) : base(message) { }
+        public BookingConflictException(string message, Exception innerException) : base(message, innerException) { }
+    }
 }

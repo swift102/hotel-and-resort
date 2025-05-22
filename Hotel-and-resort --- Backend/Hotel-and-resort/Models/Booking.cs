@@ -14,6 +14,8 @@ namespace hotel_and_resort.Models
 
     public class Booking
     {
+        internal DateTime CreatedAt;
+
         public int Id { get; set; }
         public int RoomId { get; set; }
         public int CustomerId { get; set; }

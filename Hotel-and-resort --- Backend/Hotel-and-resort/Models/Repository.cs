@@ -1,14 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
-using hotel_and_resort.Models;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using hotel_and_resort.Models;
 using Hotel_and_resort.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
+using Stripe;
+using Stripe.Checkout;
+using System.Collections.Generic;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Stripe;
-using Stripe.Checkout;
-using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
 
 
 namespace hotel_and_resort.Models
@@ -46,6 +47,8 @@ namespace hotel_and_resort.Models
         {
             _context.Entry(entity).State = EntityState.Modified;
         }
+
+    
         // Customer Methods
         public async Task<List<Customer>> GetCustomers()
         {
@@ -135,6 +138,146 @@ namespace hotel_and_resort.Models
             return await _context.Bookings.FindAsync(id);
         }
 
+        public async Task<IEnumerable<Booking>> GetAllBookingsAsync(int page, int pageSize)
+        {
+            try
+            {
+                return await _context.Bookings
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching bookings, page {Page}, pageSize {PageSize}", page, pageSize);
+                throw new RepositoryException("Failed to retrieve bookings.", ex);
+            }
+        }
+
+        public async Task<Booking> GetBookingByIdAsync(int id)
+        {
+            try
+            {
+                return await _context.Bookings
+                    .Include(b => b.Customer)
+                    .Include(b => b.Room)
+                    .FirstOrDefaultAsync(b => b.Id == id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching booking with ID {BookingId}", id);
+                throw new RepositoryException($"Failed to retrieve booking with ID {id}.", ex);
+            }
+        }
+
+        public async Task<Booking> AddBookingAsync(Booking booking)
+        {
+            if (booking == null)
+            {
+                _logger.LogWarning("Attempted to add null booking.");
+                throw new ArgumentNullException(nameof(booking));
+            }
+
+            try
+            {
+                var result = await _context.Bookings.AddAsync(booking);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Booking added: {BookingId}", result.Entity.Id);
+                return result.Entity;
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "Database error adding booking for room {RoomId}", booking.RoomId);
+                throw new RepositoryException("Failed to add booking due to database error.", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding booking for room {RoomId}", booking.RoomId);
+                throw new RepositoryException("Failed to add booking.", ex);
+            }
+        }
+
+        public async Task UpdateBookingAsync(Booking booking)
+        {
+            if (booking == null)
+            {
+                _logger.LogWarning("Attempted to update null booking.");
+                throw new ArgumentNullException(nameof(booking));
+            }
+
+            try
+            {
+                _context.Bookings.Update(booking);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Booking updated: {BookingId}", booking.Id);
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "Database error updating booking {BookingId}", booking.Id);
+                throw new RepositoryException($"Failed to update booking with ID {booking.Id} due to database error.", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating booking {BookingId}", booking.Id);
+                throw new RepositoryException($"Failed to update booking with ID {booking.Id}.", ex);
+            }
+        }
+
+        public async Task<bool> IsRoomAvailable(int roomId, DateTime checkIn, DateTime checkOut)
+        {
+            try
+            {
+                // Use FOR UPDATE to lock rows (requires transaction)
+                var isBooked = await _context.Bookings
+                    .Where(b => b.RoomId == roomId &&
+                                b.Status != BookingStatus.Cancelled &&
+                                checkIn < b.CheckOut && checkOut > b.CheckIn)
+                    .Select(b => b.Id) // Minimize data
+                    .Take(1) // Optimize for existence check
+                    .ToListAsync();
+
+                return !isBooked.Any();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking availability for room {RoomId}", roomId);
+                throw new RepositoryException($"Failed to check availability for room {roomId}.", ex);
+            }
+        }
+
+        public async Task<bool> RoomExistsAsync(int roomId)
+        {
+            try
+            {
+                return await _context.Rooms.AnyAsync(r => r.Id == roomId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking existence of room {RoomId}", roomId);
+                throw new RepositoryException($"Failed to check existence of room {roomId}.", ex);
+            }
+        }
+
+        public async Task<IDbContextTransaction> BeginTransactionAsync()
+        {
+            try
+            {
+                return await _context.Database.BeginTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error starting database transaction.");
+                throw new RepositoryException("Failed to start transaction.", ex);
+            }
+        }
+    
+
+    public class RepositoryException : Exception
+    {
+        public RepositoryException(string message) : base(message) { }
+        public RepositoryException(string message, Exception innerException) : base(message, innerException) { }
+    }
+
         public async Task<Booking> AddBooking(Booking booking)
         {
             var result = await _context.Bookings.AddAsync(booking);
@@ -142,6 +285,7 @@ namespace hotel_and_resort.Models
             return result.Entity;
         }
 
+       
         public async Task<Booking> UpdateBooking(Booking booking)
         {
             var result = _context.Bookings.Update(booking);
@@ -149,6 +293,7 @@ namespace hotel_and_resort.Models
             return result.Entity;
         }
 
+     
         public async Task<Booking> DeleteBooking(int id)
         {
             var booking = await _context.Bookings.FindAsync(id);
@@ -196,14 +341,14 @@ namespace hotel_and_resort.Models
                 .ToListAsync();
         }
 
-        public async Task<bool> IsRoomAvailable(int roomId, DateTime checkIn, DateTime checkOut)
-        {
-            var isBooked = await _context.Bookings
-                .AnyAsync(b => b.RoomId == roomId &&
-                               b.Status != BookingStatus.Cancelled &&
-                               (checkIn < b.CheckOut && checkOut > b.CheckIn));
-            return !isBooked;
-        }
+        //public async Task<bool> IsRoomAvailable(int roomId, DateTime checkIn, DateTime checkOut)
+        //{
+        //    var isBooked = await _context.Bookings
+        //        .AnyAsync(b => b.RoomId == roomId &&
+        //                       b.Status != BookingStatus.Cancelled &&
+        //                       (checkIn < b.CheckOut && checkOut > b.CheckIn));
+        //    return !isBooked;
+        //}
 
         
         public async Task<List<Room>> GetRoomsByAmenities(List<int> amenityIds)
@@ -213,6 +358,7 @@ namespace hotel_and_resort.Models
                 .ToListAsync();
         }
 
+    
         // Payment Methods
         public async Task<List<Payment>> GetPayments()
         {
@@ -299,26 +445,7 @@ namespace hotel_and_resort.Models
             return payment;
         }
 
-        //public async Task<Payment> ProcessPaymentAndUpdateBooking(int bookingId, int amount, string paymentToken)
-        //{
-        //    var booking = await _context.Bookings.FindAsync(bookingId);
-        //    if (booking == null)
-        //    {
-        //        throw new ArgumentException("Booking not found.");
-        //    }
-
-        //    // Process the payment
-        //    var payment = await ProcessPayment(bookingId, amount, paymentToken);
-
-        //    // Update the booking status if payment is successful
-        //    if (payment.Status == PaymentStatus.Completed)
-        //    {
-        //        booking.Status = BookingStatus.Confirmed;
-        //        await _context.SaveChangesAsync();
-        //    }
-
-        //    return payment;
-        //}
+        
 
         public async Task<Payment> ProcessPaymentAndUpdateBooking(int bookingId, int amount, string paymentToken)
         {
