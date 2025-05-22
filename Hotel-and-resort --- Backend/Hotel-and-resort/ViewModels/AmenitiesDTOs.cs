@@ -1,4 +1,6 @@
-﻿namespace hotel_and_resort.ViewModels
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace hotel_and_resort.ViewModels
 {
     public class AmenitiesDTOs
     {
@@ -35,6 +37,15 @@
             public string RoomNumber { get; set; }
             public string RoomType { get; set; }
             public string? Name { get; internal set; }
+        }
+        public class AmenityCreateDTO
+        {
+            [Required]
+            [MaxLength(100)]
+            public string Name { get; set; }
+
+            [MaxLength(500)]
+            public string Description { get; set; }
         }
 
     }
