@@ -1,5 +1,9 @@
 ﻿using hotel_and_resort.Controllers;
 using hotel_and_resort.Models;
+using Hotel_and_resort.Controllers;
+using Hotel_and_resort.Models;
+using Hotel_and_resort.Services;
+using Hotel_and_resort.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -13,9 +17,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using Xunit;
-using Hotel_and_resort.Services;
-using Hotel_and_resort.Controllers;
-using Hotel_and_resort.ViewModels;
 
 namespace HotelAndResort.Tests.Controllers
 {
@@ -26,6 +27,8 @@ namespace HotelAndResort.Tests.Controllers
         private readonly Mock<IConfiguration> _configurationMock;
         private readonly PaymentController _controller;
         private readonly NullLogger<PaymentController> _logger;
+        private readonly Mock<PaymentService> _paymentServiceMock;
+
 
         public PaymentControllerTests()
         {
@@ -48,8 +51,13 @@ namespace HotelAndResort.Tests.Controllers
             // Setup logger
             _logger = new NullLogger<PaymentController>();
 
-            // Initialize controller
-            _controller = new PaymentController(_context, _repositoryMock.Object, _logger, _configurationMock.Object)
+            // Initialize controller with the PaymentService mock
+            _controller = new PaymentController(
+                _context,
+                _repositoryMock.Object,
+                _paymentServiceMock.Object,
+                _logger,
+                _configurationMock.Object)
             {
                 ControllerContext = new ControllerContext
                 {

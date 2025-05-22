@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace Hotel_and_resort.Controllers
 {
+    [ApiController]
+    [Route("api/[controller]")]
     public class UserProfileController : Controller
     {
         private readonly AppDbContext _context;

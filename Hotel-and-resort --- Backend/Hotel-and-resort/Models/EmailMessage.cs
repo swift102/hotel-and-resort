@@ -1,11 +1,12 @@
-﻿using System;
-using System.Net;
-using System.Net.Mail;
-using System.Threading.Tasks;
+﻿using hotel_and_resort.Models;
+using Hotel_and_resort.Models;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Hotel_and_resort.Models;
+using System;
+using System.Net;
+using System.Net.Mail;
+using System.Threading.Tasks;
 
 namespace Hotel_and_resort.Models
 {
@@ -60,6 +61,21 @@ namespace Hotel_and_resort.Models
             return new { Message = "Email sent successfully" };
         }
 
+
+        public async Task SendBookingConfirmationEmailAsync(string email, Booking booking, Room room)
+        {
+            var subject = "Booking Confirmation";
+            var htmlMessage = $"<h3>Booking Confirmed</h3><p>Your booking for {room.Name} from {booking.CheckIn:dd-MM-yyyy} to {booking.CheckOut:dd-MM-yyyy} has been confirmed.</p><p>Total Price: {booking.TotalPrice:C}</p>";
+            await SendEmailAsync(email, subject, htmlMessage);
+        }
+
+        public async Task SendBookingCancellationEmailAsync(string email, Booking booking, Room room)
+        {
+            var subject = "Booking Cancelled";
+            var htmlMessage = $"<h3>Booking Cancelled</h3><p>Your booking for {room.Name} from {booking.CheckIn:dd-MM-yyyy} to {booking.CheckOut:dd-MM-yyyy} has been cancelled.</p>";
+            await SendEmailAsync(email, subject, htmlMessage);
+        }
+
         public async Task SendEmailWithAttachmentAsync(string email, string subject, string htmlMessage, byte[] attachment, string attachmentFileName)
         {
             try
@@ -110,4 +126,7 @@ public interface IEmailSender
 {
     Task SendEmailAsync(string email, string subject, string htmlMessage);
     Task SendEmailWithAttachmentAsync(string email, string subject, string htmlMessage, byte[] attachment, string attachmentFileName);
+
+    Task SendBookingConfirmationEmailAsync(string email, Booking booking, Room room);
+    Task SendBookingCancellationEmailAsync(string email, Booking booking, Room room);
 }

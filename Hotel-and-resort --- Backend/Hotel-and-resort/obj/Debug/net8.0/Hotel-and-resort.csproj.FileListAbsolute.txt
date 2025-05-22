@@ -430,15 +430,11 @@ C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\H
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\staticwebassets.build.json
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\staticwebassets.development.json
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\staticwebassets.build.endpoints.json
-C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\staticwebassets\msbuild.Hotel-and-resort.Microsoft.AspNetCore.StaticWebAssets.props
-C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\staticwebassets\msbuild.Hotel-and-resort.Microsoft.AspNetCore.StaticWebAssetEndpoints.props
-C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\staticwebassets\msbuild.build.Hotel-and-resort.props
-C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\staticwebassets\msbuild.buildMultiTargeting.Hotel-and-resort.props
-C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\staticwebassets\msbuild.buildTransitive.Hotel-and-resort.props
-C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\staticwebassets.pack.json
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\Hotel-an.5999C962.Up2Date
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\Hotel-and-resort.dll
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\refint\Hotel-and-resort.dll
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\Hotel-and-resort.pdb
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\Hotel-and-resort.genruntimeconfig.cache
 C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\ref\Hotel-and-resort.dll
+C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\staticwebassets.build.json.cache
+C:\Users\WESLEY\Documents\GitHub\hotel-and-resort\hotel-and-resort --- Backend\Hotel-and-resort\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt

@@ -17,8 +17,9 @@ namespace hotel_and_resort.Models
         public int BookingId { get; set; }
         public int Amount { get; set; }
         public DateTime PaymentDate { get; set; }
-        public PaymentStatus Status { get; set; } // Add status
-        public string PaymentMethod { get; set; } // New field (Credit Card, PayPal, etc.)
+        public PaymentStatus Status { get; set; }
+        public string PaymentMethod { get; set; }
+        public string StripePaymentIntentId { get; set; }
 
         // Navigation property
         public Booking Booking { get; set; }

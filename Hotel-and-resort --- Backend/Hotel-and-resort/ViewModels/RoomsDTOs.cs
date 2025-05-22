@@ -1,9 +1,9 @@
 ﻿using hotel_and_resort.ViewModels;
 using System.ComponentModel.DataAnnotations;
+using static hotel_and_resort.ViewModels.AmenitiesDTOs;
 
 namespace hotel_and_resort.DTOs
 {
-    // DTO for getting room details (read-only)
     public class RoomCreateDTO
     {
         [Required, MaxLength(100)]
@@ -21,15 +21,16 @@ namespace hotel_and_resort.DTOs
     {
         public int Id { get; set; }
         public string Name { get; set; }
-        public string? Description { get; set; }
+        public string Description { get; set; }
         public int Price { get; set; }
         public int Capacity { get; set; }
-        public string? Features { get; set; }
+        public string Features { get; set; }
         public bool IsAvailable { get; set; }
-        public List<AmenitiesDTOs.AmenityListDTO> Amenities { get; set; } // Added this property
+        public string Category { get; set; }
+        public List<AmenityListDTO> Amenities { get; set; }
         public List<ImageReadDTO> Images { get; set; }
     }
-    // DTO for updating room details (write-only)
+
     public class RoomUpdateDTO
     {
         public string Name { get; set; }
@@ -38,5 +39,11 @@ namespace hotel_and_resort.DTOs
         public int Capacity { get; set; }
         public string Features { get; set; }
         public bool IsAvailable { get; set; }
+    }
+
+    public class RoomBookingDTO
+    {
+        public int RoomId { get; set; }
+        public int Quantity { get; set; }
     }
 }

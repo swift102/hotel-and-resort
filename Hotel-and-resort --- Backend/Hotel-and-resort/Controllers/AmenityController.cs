@@ -14,16 +14,10 @@ namespace hotel_and_resort.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AmenityController : ControllerBase
+    public class AmenityController(AmenityService amenityService, ILogger<AmenityController> logger) : ControllerBase
     {
-        private readonly AmenityService _amenityService;
-        private readonly ILogger<AmenityController> _logger;
-
-        public AmenityController(AmenityService amenityService, ILogger<AmenityController> logger)
-        {
-            _amenityService = amenityService;
-            _logger = logger;
-        }
+        private readonly AmenityService _amenityService = amenityService;
+        private readonly ILogger<AmenityController> _logger = logger;
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<AmenityListDTO>>> GetAmenities(int page = 1, int pageSize = 10)
@@ -176,10 +170,10 @@ namespace hotel_and_resort.Controllers
     }
 }
 
-public class AmenityCreateUpdateDTO
-{
-    [Required, MaxLength(100)]
-    public string Name { get; set; }
-    public string? Description { get; set; }
+    public class AmenityCreateUpdateDTO
+    {
+        [Required, MaxLength(100)]
+        public string Name { get; set; }
+        public string? Description { get; set; }
 
-}
+    }
