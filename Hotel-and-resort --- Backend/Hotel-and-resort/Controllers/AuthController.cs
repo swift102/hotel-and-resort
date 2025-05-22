@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using hotel_and_resort.Models;
+using hotel_and_resort.Services;
 using System.ComponentModel.DataAnnotations;
 
 
@@ -24,12 +25,12 @@ namespace hotel_and_resort.Controllers
     {
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
-        private readonly IEmailSender _emailSender;
+        private readonly Services.IEmailSender _emailSender;
         private readonly ILogger<AuthController> _logger;
-        private readonly TokenService _tokenService; // Add this field
+        private readonly TokenService _tokenService; 
 
         public AuthController(UserManager<User> userManager, SignInManager<User> signInManager,
-            IEmailSender emailSender, ILogger<AuthController> logger, TokenService tokenService) // Add ITokenService to constructor
+           Services.IEmailSender emailSender, ILogger<AuthController> logger, TokenService tokenService) // Add ITokenService to constructor
         {
             _userManager = userManager;
             _signInManager = signInManager;

@@ -96,6 +96,19 @@ namespace hotel_and_resort.Models
             return await _context.Rooms.FindAsync(id);
         }
 
+        public async Task<Room> GetRoomByIdAsync(int id)
+        {
+            try
+            {
+                return await _context.Rooms.FindAsync(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching room with ID {RoomId}", id);
+                throw new RepositoryException($"Failed to retrieve room with ID {id}.", ex);
+            }
+        }
+
         public async Task<Room> AddRoom(Room room)
         {
             var result = await _context.Rooms.AddAsync(room);

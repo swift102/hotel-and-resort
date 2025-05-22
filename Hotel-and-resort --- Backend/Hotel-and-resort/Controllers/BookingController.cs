@@ -264,17 +264,19 @@ namespace hotel_and_resort.Controllers
         {
             try
             {
-                var emailSubject = "Booking Confirmation";
-                var emailBody = $"<p>Dear {customer.FirstName},</p><p>Your booking (ID: {booking.Id}) for {booking.CheckIn:dd-MM-yyyy} to {booking.CheckOut:dd-MM-yyyy} has been confirmed.</p>";
-                await _emailSender.SendEmailAsync(customer.Email, emailSubject, emailBody);
-
+                var room = await _repository.GetRoomByIdAsync(booking.RoomId);
+                if (room == null)
+                {
+                    _logger.LogError("Room not found for booking {BookingId}", booking.Id);
+                    return;
+                }
+                await _emailSender.SendBookingConfirmationEmailAsync(customer.Email, booking, room);
                 var smsMessage = $"Booking {booking.Id} confirmed for {booking.CheckIn:dd-MM-yyyy} to {booking.CheckOut:dd-MM-yyyy}.";
                 await _smsSender.SendSmsAsync(customer.Phone, smsMessage);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending booking confirmation to customer {CustomerId}", customer.Id);
-                // Log but don't fail the booking process
             }
         }
     }

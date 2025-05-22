@@ -11,6 +11,7 @@
           "EntityFrameworkCore.InMemory.HierarchyId": "8.0.0",
           "FluentValidation": "11.11.0",
           "HtmlSanitizer": "9.0.884",
+          "MailKit": "4.12.1",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "8.0.13",
           "Microsoft.AspNetCore.Identity.EntityFrameworkCore": "8.0.3",
           "Microsoft.AspNetCore.Identity.UI": "8.0.3",
@@ -87,6 +88,14 @@
           "lib/netstandard2.0/Azure.Identity.dll": {
             "assemblyVersion": "1.10.3.0",
             "fileVersion": "1.1000.323.51804"
+          }
+        }
+      },
+      "BouncyCastle.Cryptography/2.5.1": {
+        "runtime": {
+          "lib/net6.0/BouncyCastle.Cryptography.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.5.1.28965"
           }
         }
       },
@@ -167,6 +176,18 @@
           "lib/netstandard2.1/jose-jwt.dll": {
             "assemblyVersion": "5.1.0.0",
             "fileVersion": "5.1.0.0"
+          }
+        }
+      },
+      "MailKit/4.12.1": {
+        "dependencies": {
+          "MimeKit": "4.12.0",
+          "System.Formats.Asn1": "9.0.0"
+        },
+        "runtime": {
+          "lib/net8.0/MailKit.dll": {
+            "assemblyVersion": "4.12.0.0",
+            "fileVersion": "4.12.1.0"
           }
         }
       },
@@ -1274,6 +1295,18 @@
           }
         }
       },
+      "MimeKit/4.12.0": {
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.5.1",
+          "System.Security.Cryptography.Pkcs": "8.0.1"
+        },
+        "runtime": {
+          "lib/net8.0/MimeKit.dll": {
+            "assemblyVersion": "4.12.0.0",
+            "fileVersion": "4.12.0.0"
+          }
+        }
+      },
       "Mono.TextTemplating/2.2.1": {
         "dependencies": {
           "System.CodeDom": "4.4.0"
@@ -1748,6 +1781,22 @@
           "runtime.native.System.Security.Cryptography.OpenSsl": "4.3.2"
         }
       },
+      "System.Security.Cryptography.Pkcs/8.0.1": {
+        "runtime": {
+          "lib/net8.0/System.Security.Cryptography.Pkcs.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.1024.46610"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/net8.0/System.Security.Cryptography.Pkcs.dll": {
+            "rid": "win",
+            "assetType": "runtime",
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.1024.46610"
+          }
+        }
+      },
       "System.Security.Cryptography.Primitives/4.3.0": {
         "dependencies": {
           "System.Diagnostics.Debug": "4.3.0",
@@ -1956,6 +2005,13 @@
       "path": "azure.identity/1.10.3",
       "hashPath": "azure.identity.1.10.3.nupkg.sha512"
     },
+    "BouncyCastle.Cryptography/2.5.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-zy8TMeTP+1FH2NrLaNZtdRbBdq7u5MI+NFZQOBSM69u5RFkciinwzV2eveY6Kjf5MzgsYvvl6kTStsj3JrXqkg==",
+      "path": "bouncycastle.cryptography/2.5.1",
+      "hashPath": "bouncycastle.cryptography.2.5.1.nupkg.sha512"
+    },
     "Castle.Core/5.1.1": {
       "type": "package",
       "serviceable": true,
@@ -2011,6 +2067,13 @@
       "sha512": "sha512-gUP5iRRJ/O62nxp5nNQ2MuvttpWBl1b2izHyr3tL3dOlSM38U9cLGdyL5UyTX2YPAc8JOFt0zhZwzEfQiH8BJw==",
       "path": "jose-jwt/5.1.0",
       "hashPath": "jose-jwt.5.1.0.nupkg.sha512"
+    },
+    "MailKit/4.12.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-rIqJm92qtHvk1hDchsJ95Hy7n46A7imE24ol++ikXBsjf3Bi1qDBu4H91FfY6LrYXJaxRlc2gIIpC8AOJrCbqg==",
+      "path": "mailkit/4.12.1",
+      "hashPath": "mailkit.4.12.1.nupkg.sha512"
     },
     "Microsoft.AspNetCore.Authentication.JwtBearer/8.0.13": {
       "type": "package",
@@ -2445,6 +2508,13 @@
       "sha512": "sha512-9ivcl/7SGRmOT0YYrHQGohWiT5YCpkmy/UEzldfVisLm6QxbLaK3FAJqZXI34rnRLmqqDCeMQxKINwmKwAPiDw==",
       "path": "microsoft.testplatform.testhost/17.8.0",
       "hashPath": "microsoft.testplatform.testhost.17.8.0.nupkg.sha512"
+    },
+    "MimeKit/4.12.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-PFUHfs6BZxKYM/QPJksAwXphbJf0SEfdSfsoQ6p6yvFRaJPofFJMBiotWhFRrdSUzfp6C6K49EjBIqIwZ2TJqA==",
+      "path": "mimekit/4.12.0",
+      "hashPath": "mimekit.4.12.0.nupkg.sha512"
     },
     "Mono.TextTemplating/2.2.1": {
       "type": "package",
@@ -2900,6 +2970,13 @@
       "sha512": "sha512-1DEWjZZly9ae9C79vFwqaO5kaOlI5q+3/55ohmq/7dpDyDfc8lYe7YVxJUZ5MF/NtbkRjwFRo14yM4OEo9EmDw==",
       "path": "system.security.cryptography.encoding/4.3.0",
       "hashPath": "system.security.cryptography.encoding.4.3.0.nupkg.sha512"
+    },
+    "System.Security.Cryptography.Pkcs/8.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-CoCRHFym33aUSf/NtWSVSZa99dkd0Hm7OCZUxORBjRB16LNhIEOf8THPqzIYlvKM0nNDAPTRBa1FxEECrgaxxA==",
+      "path": "system.security.cryptography.pkcs/8.0.1",
+      "hashPath": "system.security.cryptography.pkcs.8.0.1.nupkg.sha512"
     },
     "System.Security.Cryptography.Primitives/4.3.0": {
       "type": "package",

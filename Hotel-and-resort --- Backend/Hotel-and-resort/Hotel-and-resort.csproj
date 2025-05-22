@@ -12,6 +12,7 @@
     <PackageReference Include="EntityFrameworkCore.InMemory.HierarchyId" Version="8.0.0" />
     <PackageReference Include="FluentValidation" Version="11.11.0" />
     <PackageReference Include="HtmlSanitizer" Version="9.0.884" />
+    <PackageReference Include="MailKit" Version="4.12.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.3" />

@@ -2,7 +2,7 @@
 using hotel_and_resort.Services;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hotel_and_resort.Services
+namespace hotel_and_resort.Services
 {
     public class PricingService
     {

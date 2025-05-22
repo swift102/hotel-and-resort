@@ -12,7 +12,14 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using System.Text.RegularExpressions;
 using hotel_and_resort.Models;
+using hotel_and_resort.Services;
 using Microsoft.AspNetCore.Authorization;
+
+
+
+// Add an alias for one of the conflicting namespaces
+using IEmailSender = hotel_and_resort.Services.IEmailSender;
+
 
 
 namespace Hotel_and_resort.Controllers
@@ -28,7 +35,7 @@ namespace Hotel_and_resort.Controllers
         private readonly AppDbContext _context;
         private readonly ISmsSenderService _smsSender;
 
-        public UsersController(UserManager<User> userManager, SignInManager<User> signInManager, IEmailSender emailSender, ISmsSenderService smsSender, ILogger<UsersController> logger, AppDbContext context)
+        public UsersController(UserManager<User> userManager, SignInManager<User> signInManager,IEmailSender emailSender, ISmsSenderService smsSender, ILogger<UsersController> logger, AppDbContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;

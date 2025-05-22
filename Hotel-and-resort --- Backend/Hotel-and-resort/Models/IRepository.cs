@@ -63,6 +63,7 @@ namespace hotel_and_resort.Models
         // Room Methods
         Task<List<Room>> GetRooms();
         Task<Room> GetRoomById(int id);
+        Task<Room> GetRoomByIdAsync(int id);
         Task<Room> AddRoom(Room room);
         Task<Room> UpdateRoom(Room room);
         Task<Room> DeleteRoom(int id);
