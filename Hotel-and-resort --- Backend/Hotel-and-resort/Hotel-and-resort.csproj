@@ -6,8 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Hotel_and_resort</RootNamespace>
   </PropertyGroup>
+
   <ItemGroup>
     <!-- Identity Packages -->
+    <PackageReference Include="EntityFrameworkCore.InMemory.HierarchyId" Version="8.0.0" />
     <PackageReference Include="FluentValidation" Version="11.11.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.3" />
@@ -32,12 +34,14 @@
     <!-- Swagger for API Documentation -->
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
     <PackageReference Include="Vonage" Version="7.16.0" />
+
+    <!-- Testing Packages -->
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
   </ItemGroup>
-
 
 </Project>

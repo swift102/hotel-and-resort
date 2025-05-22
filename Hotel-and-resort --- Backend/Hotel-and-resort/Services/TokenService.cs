@@ -26,16 +26,16 @@ namespace Hotel_and_resort.Services
             var jwtSettings = _configuration.GetSection("Jwt");
             var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]);
             var claims = new List<Claim>
-        {
-            // Use Id from IdentityUser base class
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Name, user.UserName ?? string.Empty),
-            new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
-            // Add custom claims for your extended properties
-            new Claim("Name", user.Name ?? string.Empty),
-            new Claim("Surname", user.Surname ?? string.Empty),
-            new Claim("UserProfileID", user.UserProfileID.ToString())
-        };
+            {
+              // Use Id from IdentityUser base class
+                 new(ClaimTypes.NameIdentifier, user.Id),
+                 new(ClaimTypes.Name, user.UserName ?? string.Empty),
+                 new(ClaimTypes.Email, user.Email ?? string.Empty),
+              // Add custom claims for your extended properties
+                 new("Name", user.Name ?? string.Empty),
+                 new("Surname", user.Surname ?? string.Empty),
+                 new("UserProfileID", user.UserProfileID.ToString())
+            };
 
             // Add roles to the token
             foreach (var role in roles)
