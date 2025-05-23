@@ -451,16 +451,7 @@ namespace hotel_and_resort.Models
             return booking;
         }
 
-        //public async Task UpdateRoomAvailability(int roomId)
-        //{
-        //    var room = await _context.Rooms.FindAsync(roomId);
-        //    if (room != null)
-        //    {
-        //        room.IsAvailable = false; // Example logic to mark the room as unavailable
-        //        _context.Rooms.Update(room);
-        //        await _context.SaveChangesAsync();
-        //    }
-        //}
+  
 
 
         public async Task UpdateRoomAvailability(int roomId)
@@ -473,13 +464,7 @@ namespace hotel_and_resort.Models
             await _context.SaveChangesAsync();
         }
 
-        //public async Task<List<Booking>> GetBookingsByCustomerId(int customerId)
-        //{
-        //    return await _context.Bookings
-        //        .Where(b => b.CustomerId == customerId)
-        //        .ToListAsync();
-        //}
-
+  
 
         public async Task<List<Booking>> GetBookingsByRoomId(int roomId)
         {
@@ -490,15 +475,6 @@ namespace hotel_and_resort.Models
 
      
 
-        //public async Task<bool> IsRoomAvailable(int roomId, DateTime checkIn, DateTime checkOut)
-        //{
-        //    var isBooked = await _context.Bookings
-        //        .AnyAsync(b => b.RoomId == roomId &&
-        //                       b.Status != BookingStatus.Cancelled &&
-        //                       (checkIn < b.CheckOut && checkOut > b.CheckIn));
-        //    return !isBooked;
-        //}
-
 
         public async Task<List<Room>> GetRoomsByAmenities(List<int> amenityIds)
         {
@@ -507,36 +483,50 @@ namespace hotel_and_resort.Models
                 .ToListAsync();
         }
 
-    
+
         // Payment Methods
-        public async Task<List<Payment>> GetPayments()
+        public async Task AddPaymentAsync(Payment payment)
         {
-            return await _context.Payments.Include(p => p.Booking).ToListAsync();
-        }
-
-        public async Task<Payment> GetPayment(int id)
-        {
-            return await _context.Payments.Include(p => p.Booking).FirstOrDefaultAsync(p => p.Id == id);
-        }
-
-        public async Task<Payment> AddPayment(Payment payment)
-        {
-            var result = await _context.Payments.AddAsync(payment);
-            await SaveChangesAsync();
-            return result.Entity;
-        }
-
-        public async Task<Payment> DeletePayment(int id)
-        {
-            var payment = await _context.Payments.FindAsync(id);
-            if (payment != null)
+            try
             {
-                _context.Payments.Remove(payment);
-                await SaveChangesAsync();
+                await _context.Payments.AddAsync(payment);
+                await _context.SaveChangesAsync();
             }
-            return payment;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding payment for booking {BookingId}", payment.BookingId);
+                throw new RepositoryException("Failed to add payment.", ex);
+            }
         }
 
+        public async Task<Payment> GetPaymentByIdAsync(int id)
+        {
+            try
+            {
+                return await _context.Payments
+                    .Include(p => p.Booking)
+                    .FirstOrDefaultAsync(p => p.Id == id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching payment with ID {PaymentId}", id);
+                throw new RepositoryException($"Failed to retrieve payment with ID {id}.", ex);
+            }
+        }
+
+        public async Task UpdatePaymentAsync(Payment payment)
+        {
+            try
+            {
+                _context.Payments.Update(payment);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating payment with ID {PaymentId}", payment.Id);
+                throw new RepositoryException($"Failed to update payment with ID {payment.Id}.", ex);
+            }
+        }
 
         public async Task<Payment> ProcessPayment(int bookingId, int amount, string paymentToken)
         {

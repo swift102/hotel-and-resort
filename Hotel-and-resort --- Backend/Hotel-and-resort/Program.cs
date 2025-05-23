@@ -81,10 +81,12 @@ builder.Services.AddScoped<IRepository, Repository>();
 builder.Services.AddScoped<RoomService>();
 builder.Services.AddScoped<AmenityService>();
 builder.Services.AddScoped<PricingService>();
-builder.Services.AddScoped<hotel_and_resort.Services.CustomerService>(); // Disambiguate CustomerService
+builder.Services.AddScoped<CustomerService>();
 builder.Services.AddHttpClient<PaymentService>();
 builder.Services.AddScoped<PaymentService>();
 builder.Services.AddScoped<hotel_and_resort.Services.TokenService>();
+builder.Services.AddScoped<PaymentIntentService>(provider =>
+    new PaymentIntentService(new StripeClient(builder.Configuration["Stripe:SecretKey"])));
 
 // Configure SmtpSettings
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));

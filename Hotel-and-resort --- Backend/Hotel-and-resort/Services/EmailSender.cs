@@ -268,6 +268,57 @@ namespace hotel_and_resort.Services
             }
         }
 
+        public async Task SendPaymentConfirmationEmailAsync(string email, Booking booking, Room room, string paymentId)
+        {
+            try
+            {
+                // Validate inputs
+                if (string.IsNullOrWhiteSpace(email) || !IsValidEmail(email))
+                {
+                    _logger.LogWarning("Invalid email address: {Email}", email);
+                    throw new EmailValidationException("Invalid or missing recipient email address.");
+                }
+                if (booking == null)
+                {
+                    _logger.LogWarning("Null booking provided.");
+                    throw new EmailValidationException("Booking cannot be null.");
+                }
+                if (room == null)
+                {
+                    _logger.LogWarning("Null room provided.");
+                    throw new EmailValidationException("Room cannot be null.");
+                }
+                if (string.IsNullOrWhiteSpace(paymentId))
+                {
+                    _logger.LogWarning("Missing payment ID.");
+                    throw new EmailValidationException("Payment ID is required.");
+                }
+
+                // Sanitize inputs
+                var roomName = _sanitizer.Sanitize(room.Name);
+                var paymentIdSanitized = _sanitizer.Sanitize(paymentId);
+                var subject = _sanitizer.Sanitize("Payment Confirmation");
+                var htmlMessage = _sanitizer.Sanitize(
+                    $"<h3>Payment Confirmed</h3>" +
+                    $"<p>Your payment for booking (ID: {booking.Id}) has been successfully processed.</p>" +
+                    $"<p><strong>Room:</strong> {roomName}</p>" +
+                    $"<p><strong>Check-In:</strong> {booking.CheckIn:dd-MM-yyyy}</p>" +
+                    $"<p><strong>Check-Out:</strong> {booking.CheckOut:dd-MM-yyyy}</p>" +
+                    $"<p><strong>Total Price:</strong> {booking.TotalPrice:C}</p>" +
+                    $"<p><strong>Payment ID:</strong> {paymentIdSanitized}</p>");
+
+                await SendEmailAsync(email, subject, htmlMessage);
+                _logger.LogInformation("Payment confirmation email sent to {Email} for booking {BookingId}, payment {PaymentId}", email, booking.Id, paymentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending payment confirmation email to {Email} for booking {BookingId}, payment {PaymentId}", email, booking?.Id, paymentId);
+                throw new EmailServiceException("Failed to send payment confirmation email.", ex);
+            }
+        }
+
+
+
         private async Task PublishEmailSentEvent(EmailMessage emailMessage)
         {
             // Placeholder for event publishing (e.g., via MediatR or message queue)
@@ -293,5 +344,7 @@ namespace hotel_and_resort.Services
         Task SendEmailWithAttachmentAsync(string email, string subject, string htmlMessage, byte[] attachment, string attachmentFileName);
         Task SendBookingConfirmationEmailAsync(string email, Booking booking, Room room);
         Task SendBookingCancellationEmailAsync(string email, Booking booking, Room room);
+        Task SendPaymentConfirmationEmailAsync(string email, Booking booking, Room room, string paymentId);
+
     }
 }

@@ -25,6 +25,11 @@ namespace hotel_and_resort.Models
         [MaxLength(20)]
         public string Phone { get; set; }
 
+        public int UserProfileID { get; set; }
+
+        [MaxLength(450)]
+        public string UserId { get; set; }
+
         public List<Booking> Bookings { get; set; }
 
     }

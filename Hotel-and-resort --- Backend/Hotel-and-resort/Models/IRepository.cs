@@ -8,7 +8,16 @@ namespace hotel_and_resort.Models
 {
     public interface IRepository
     {
-    
+
+        public interface IRepository<T> where T : class
+        {
+            Task<IEnumerable<T>> GetAllAsync();
+            Task<T> GetByIdAsync(int id);
+            Task AddAsync(T entity);
+            Task UpdateAsync(T entity);
+            Task DeleteAsync(int id);
+        }
+
 
         public class Repository<T> : IRepository<T> where T : class
         {
@@ -54,11 +63,14 @@ namespace hotel_and_resort.Models
 
 
         // Customer Methods
-        Task<List<Customer>> GetCustomers();
-        Task<Customer> GetCustomerById(int id);
-        Task<Customer> AddCustomer(Customer customer);
-        Task<Customer> UpdateCustomer(Customer customer);
-        Task<Customer> DeleteCustomer(int id);
+        //Task<List<Customer>> GetCustomers();
+        //Task<Customer> GetCustomerById(int id);
+        //Task<Customer> DeleteCustomer(int id);
+
+        //Task<Customer> GetCustomerByUserProfileIdAsync(int userProfileId);
+        //Task<Customer> GetCustomerByUserIdAsync(string userId);
+        //Task<Customer> CreateCustomerAsync(Customer customer);
+        //Task<Customer> UpdateCustomerAsync(Customer customer);
 
         // Room Methods
         Task<List<Room>> GetRoomsAsync();
@@ -77,20 +89,20 @@ namespace hotel_and_resort.Models
         Task<Booking> GetBookingByIdAsync(int id);
         Task<Booking> AddBookingAsync(Booking booking);
         Task UpdateBookingAsync(Booking booking);
- 
         Task<bool> RoomExistsAsync(int roomId);
         Task<IDbContextTransaction> BeginTransactionAsync();
 
 
         // Payment Methods
-        Task<List<Payment>> GetPayments();
-        Task<Payment> GetPayment(int id);
-        Task<Payment> AddPayment(Payment payment);
-        Task<Payment> DeletePayment(int id);
+     
         Task<Payment> ProcessPaymentAndUpdateBooking(int bookingId, int amount, string paymentToken);
 
+        Task AddPaymentAsync(Payment payment);
+        Task<Payment> GetPaymentByIdAsync(int id);
+        Task UpdatePaymentAsync(Payment payment);
 
-        
+
+
         // Amenities Methods
         Task<List<Amenities>> GetAmenities();
         Task<Amenities> GetAmenityById(int id);
@@ -100,7 +112,6 @@ namespace hotel_and_resort.Models
 
 
         // Methods for Image entity
-       
             Task<List<Image>> GetImages();
             Task<Image> GetImageById(int id); // Fix: Change method name to match the interface
             Task<Image> AddImage(Image image);

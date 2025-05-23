@@ -29,6 +29,8 @@ namespace hotel_and_resort.Models
         [Required]
         public int UserProfileID { get; set; }
 
+        public int? CustomerId { get; set; }
+
         [Required]
         public DateTime CheckIn { get; set; }
 
@@ -41,10 +43,11 @@ namespace hotel_and_resort.Models
         [Required]
         public DateTime CreatedAt { get; set; }
 
-        public string CustomerId { get; set; }
-        public BookingStatus Status { get; set; } // Add this property
+        [Required]
+        public BookingStatus Status { get; set; } = BookingStatus.Pending;
         public bool IsRefundable { get; set; } // New field
 
+        public string? PaymentIntentId { get; set; }
 
         // Navigation properties
         public Customer Customer { get; set; }

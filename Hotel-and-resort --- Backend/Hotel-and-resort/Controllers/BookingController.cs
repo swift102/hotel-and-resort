@@ -2,6 +2,7 @@
 using hotel_and_resort.DTOs;
 using hotel_and_resort.Models;
 using hotel_and_resort.Services;
+using Hotel_and_resort.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -191,8 +192,8 @@ namespace hotel_and_resort.Controllers
 
                 // Restrict to admin or booking owner
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!User.IsInRole("Admin") && booking.CustomerId.ToString() != userId)
-                {
+                if( !User.IsInRole("Admin") && booking.CustomerId.ToString() != userId)
+                    {
                     _logger.LogWarning("Unauthorized access to booking {BookingId} by user {UserId}", id, userId);
                     return Forbid();
                 }
@@ -272,7 +273,7 @@ namespace hotel_and_resort.Controllers
                 }
 
                 await _emailSender.SendBookingConfirmationEmailAsync(customer.Email, booking, room);
-                var smsMessage = $"Booking {booking.Id} confirmed for {booking.CheckIn:dd-MM-yyyy} to {booking.CheckOut:dd-MM-yyyy}.";
+                var smsMessage = $"Booking {booking.Id} created for {booking.CheckIn:dd-MM-yyyy} to {booking.CheckOut:dd-MM-yyyy}. Proceed to payment.";
                 await _smsSender.SendSmsAsync(customer.Phone, smsMessage);
             }
             catch (Exception ex)
