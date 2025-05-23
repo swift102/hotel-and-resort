@@ -53,6 +53,11 @@ namespace hotel_and_resort.Models
                 .WithOne(b => b.Customer)
                 .HasForeignKey(b => b.CustomerId);
 
+            modelBuilder.Entity<Booking>()
+             .Property(b => b.TotalPrice)
+             .HasColumnType("decimal(18,2)");
+
+
             // One-to-Many: Room -> Reservation
             modelBuilder.Entity<Room>()
                 .HasMany(r => r.Bookings)
@@ -61,9 +66,17 @@ namespace hotel_and_resort.Models
 
             // User relationships
             modelBuilder.Entity<User>()
+              .Property(u => u.UserProfileID)
+              .IsRequired();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.UserProfileID)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
                 .HasOne(u => u.UserProfile)
-                .WithMany(up => up.Users)
-                .HasForeignKey(u => u.UserProfileID);
+                .WithOne(up => up.User)
+                .HasForeignKey<User>(u => u.UserProfileID);
 
             // Unique indexes for Customer Email and Phone
             modelBuilder.Entity<Customer>()
@@ -90,6 +103,22 @@ namespace hotel_and_resort.Models
                 .HasOne<User>()
                 .WithMany()
                 .HasForeignKey(t => t.UserId);
+
+            modelBuilder.Entity<Room>()
+             .Property(r => r.BasePrice)
+             .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<RefreshToken>()
+                .HasIndex(t => t.UserId);
+
+
+            modelBuilder.Entity<Customer>()
+                .HasIndex(c => c.Email)
+                .IsUnique();
+
+            modelBuilder.Entity<Customer>()
+                .HasIndex(c => c.UserId)
+                .IsUnique();
         }
     }
 

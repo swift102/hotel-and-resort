@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 
 namespace hotel_and_resort.Models
 {
@@ -12,7 +13,7 @@ namespace hotel_and_resort.Models
         public int BookingId { get; set; }
 
         [Required]
-        public int Amount { get; set; } // In cents
+        public decimal Amount { get; set; }
 
         [Required]
         public DateTime PaymentDate { get; set; }
@@ -23,8 +24,21 @@ namespace hotel_and_resort.Models
         [Required]
         public PaymentStatus Status { get; set; }
 
+        [Required]
+        public string StatusMessage { get; set; } = string.Empty;
+
+        [Required]
+        public string TransactionId { get; set; } = string.Empty;
+
+        [Required]
+        public string Currency { get; set; } = "ZAR"; // Default to South African Rand
+
+        public int CustomerId { get; set; } // Foreign key to Customer table
+
         public string? StripePaymentIntentId { get; set; }
 
+ 
+    public DateTime CreatedAt { get; set; }
         public Booking Booking { get; set; }
     }
 
@@ -33,6 +47,7 @@ namespace hotel_and_resort.Models
         Pending,
         Completed,
         Failed,
-        Refunded
+        Refunded,
+        Succeeded
     }
 }

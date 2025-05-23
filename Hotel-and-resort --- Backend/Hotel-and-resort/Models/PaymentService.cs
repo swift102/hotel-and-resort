@@ -20,13 +20,17 @@ namespace hotel_and_resort.Services
         private readonly IConfiguration _configuration;
         private readonly ILogger<PaymentService> _logger;
         private readonly HttpClient _httpClient;
+        private readonly AppDbContext _context;
+        private readonly IRepository _repository;
 
-        public PaymentService(IConfiguration configuration, ILogger<PaymentService> logger, HttpClient httpClient)
+        public PaymentService(IConfiguration configuration, ILogger<PaymentService> logger, HttpClient httpClient, AppDbContext context, IRepository repository)
         {
             _configuration = configuration;
             _logger = logger;
             _httpClient = httpClient;
             StripeConfiguration.ApiKey = configuration["Stripe:SecretKey"];
+            _context = context;
+
         }
 
         public async Task<string> CreatePaymentIntentAsync(int amount, string currency = "usd")
@@ -56,6 +60,52 @@ namespace hotel_and_resort.Services
                 throw;
             }
         }
+
+        public async Task<Session> CreateCheckoutSessionAsync(int bookingId, int customerId, string successUrl, string cancelUrl)
+        {
+            var booking = await _repository.GetBookingByIdAsync(bookingId);
+            if (booking == null)
+            {
+                _logger.LogWarning("Booking {BookingId} not found for checkout session", bookingId);
+                throw new InvalidOperationException("Booking not found.");
+            }
+
+            var amountInCents = (int)(booking.TotalPrice * 100);
+            var options = new SessionCreateOptions
+            {
+                PaymentMethodTypes = new List<string> { "card" },
+                LineItems = new List<SessionLineItemOptions>
+                {
+                    new SessionLineItemOptions
+                    {
+                        PriceData = new SessionLineItemPriceDataOptions
+                        {
+                            UnitAmount = amountInCents,
+                            Currency = "usd",
+                            ProductData = new SessionLineItemPriceDataProductDataOptions
+                            {
+                                Name = $"Booking #{bookingId}"
+                            }
+                        },
+                        Quantity = 1
+                    }
+                },
+                Mode = "payment",
+                SuccessUrl = successUrl,
+                CancelUrl = cancelUrl,
+                Metadata = new Dictionary<string, string>
+                {
+                    { "BookingId", bookingId.ToString() },
+                    { "CustomerId", customerId.ToString() }
+                }
+            };
+
+            var service = new SessionService();
+            var session = await service.CreateAsync(options);
+            _logger.LogInformation("Created Stripe checkout session {SessionId} for Booking {BookingId}", session.Id, bookingId);
+            return session;
+        }
+
 
         public async Task<Session> CreateCheckoutSessionAsync(int amount, int bookingId, string currency = "usd")
         {

@@ -1,18 +1,21 @@
 ﻿using Ganss.Xss;
 using hotel_and_resort.Models;
 using hotel_and_resort.Services;
-using Hotel_and_resort.Models;
+using Hotel_and_resort.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Stripe;
+using Stripe.Checkout;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -26,25 +29,31 @@ namespace hotel_and_resort.Controllers
         private readonly RoomService _roomService;
         private readonly PaymentService _paymentService;
         private readonly IEmailSender _emailSender;
+        private readonly ICustomerService _customerService;
         private readonly ILogger<PaymentController> _logger;
         private readonly IConfiguration _configuration;
         private readonly IHtmlSanitizer _sanitizer;
+        private readonly AppDbContext _context;
 
         public PaymentController(
             IRepository repository,
             RoomService roomService,
             PaymentService paymentService,
             IEmailSender emailSender,
+            ICustomerService customerService,
             ILogger<PaymentController> logger,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            AppDbContext context)
         {
-            _repository = repository;
-            _roomService = roomService;
-            _paymentService = paymentService;
-            _emailSender = emailSender;
-            _logger = logger;
-            _configuration = configuration;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _roomService = roomService ?? throw new ArgumentNullException(nameof(roomService));
+            _paymentService = paymentService ?? throw new ArgumentNullException(nameof(paymentService));
+            _emailSender = emailSender ?? throw new ArgumentNullException(nameof(emailSender));
+            _customerService = customerService ?? throw new ArgumentNullException(nameof(customerService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _sanitizer = new HtmlSanitizer();
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
         [HttpPost("payfast/{bookingId}")]
@@ -94,8 +103,14 @@ namespace hotel_and_resort.Controllers
                     return BadRequest(new { Error = "Room is no longer available." });
                 }
 
-                // Get customer data (placeholder; replace with CustomerService)
-                var customer = new Customer { Id = booking.UserProfileID, Email = "customer@example.com" };
+                // Get customer
+                var customer = await _customerService.GetCustomerByIdAsync(booking.UserProfileID);
+                if (customer == null)
+                {
+                    _logger.LogWarning("Customer not found for UserProfileID {UserProfileID}", booking.UserProfileID);
+                    return BadRequest(new { Error = "Customer not found." });
+                }
+
                 var success = await _paymentService.InitiatePayFastPaymentAsync(bookingId, booking.TotalPrice, customer.Email);
                 if (!success)
                 {
@@ -109,7 +124,7 @@ namespace hotel_and_resort.Controllers
                 var passphrase = _configuration["PayFast:Passphrase"] ?? "test_passphrase";
                 var returnUrl = _configuration["PayFast:ReturnUrl"] ?? "http://localhost:4200/payment-success";
                 var cancelUrl = _configuration["PayFast:CancelUrl"] ?? "http://localhost:4200/payment-cancel";
-                var notifyUrl = _configuration["PayFast:NotifyUrl"] ?? "https://your-api-domain.com/api/Payment/notify";
+                var notifyUrl = _configuration["PayFast:NotifyUrl"] ?? "https://your-api-domain.com/api/payment/notify";
 
                 var data = new Dictionary<string, string>
                 {
@@ -147,7 +162,7 @@ namespace hotel_and_resort.Controllers
             {
                 // Validate PayFast IP (simplified; use PayFast's official IP list in production)
                 var remoteIp = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
-                if (remoteIp != "196.33.227.0" && remoteIp != "127.0.0.1") // Example IPs
+                if (remoteIp != "196.33.227.0" && remoteIp != "127.0.0.1") // Update with PayFast IPs
                 {
                     _logger.LogWarning("Unauthorized PayFast notification from IP {RemoteIp}", remoteIp);
                     return Unauthorized(new { Error = "Invalid source IP." });
@@ -177,39 +192,51 @@ namespace hotel_and_resort.Controllers
                     return NotFound(new { Error = "Booking not found." });
                 }
 
+                var customer = await _customerService.GetCustomerByIdAsync(booking.UserProfileID);
+                if (customer == null)
+                {
+                    _logger.LogWarning("Customer not found for UserProfileID {UserProfileID}", booking.UserProfileID);
+                    return BadRequest(new { Error = "Customer not found." });
+                }
+
                 var payment = new Payment
                 {
                     BookingId = bookingId,
-                    Amount = (int)(decimal.Parse(notification["amount_gross"]) * 100), // Convert to cents
-                    PaymentDate = DateTime.UtcNow,
+                    Amount = decimal.Parse(notification["amount_gross"]), // PayFast returns in ZAR
+                    Currency = "ZAR",
                     PaymentMethod = "PayFast",
-                    Status = paymentStatus == "COMPLETE" ? PaymentStatus.Completed : PaymentStatus.Failed
+                    TransactionId = notification["pf_payment_id"],
+                    Status = paymentStatus == "COMPLETE" ? PaymentStatus.Succeeded : PaymentStatus.Failed,
+                    CustomerId = booking.UserProfileID,
+                    CreatedAt = DateTime.UtcNow
                 };
 
-                await _repository.AddPaymentAsync(payment);
+                await _context.Payments.AddAsync(payment);
 
-                if (payment.Status == PaymentStatus.Completed)
+                if (payment.Status == PaymentStatus.Succeeded)
                 {
                     booking.Status = BookingStatus.Confirmed;
-                    await _repository.UpdateRoomAvailabilityAsync(booking.RoomId);
+                    _context.Bookings.Update(booking);
 
                     // Send payment confirmation email
-                    var customer = new Customer { Id = booking.UserProfileID, Email = "customer@example.com" }; // Placeholder
-                    var room = await _repository.GetRoomByIdAsync(booking.RoomId);
+                    var room = await _context.Rooms.FindAsync(booking.RoomId);
                     if (room != null)
                     {
-                        await _emailSender.SendPaymentConfirmationEmailAsync(customer.Email, booking, room, $"PF-{bookingId}");
+                        var emailBody = _sanitizer.Sanitize(
+                            $"<h3>Payment Confirmation</h3><p>Your payment for Booking #{bookingId} ({room.Name}) has been received.</p>");
+                        await _emailSender.SendEmailAsync(customer.Email, "Payment Confirmation", emailBody);
                     }
 
-                    _logger.LogInformation("PayFast payment completed for Booking {BookingId}", bookingId);
+                    _logger.LogInformation("PayFast payment completed for Booking {BookingId}, Payment {PaymentId}", bookingId, payment.Id);
                 }
                 else
                 {
                     booking.Status = BookingStatus.Cancelled;
+                    _context.Bookings.Update(booking);
                     _logger.LogWarning("PayFast payment failed or cancelled for Booking {BookingId}", bookingId);
                 }
 
-                await _repository.UpdateBookingAsync(booking);
+                await _context.SaveChangesAsync();
                 return Ok();
             }
             catch (Exception ex)
@@ -269,45 +296,56 @@ namespace hotel_and_resort.Controllers
 
                 // Create payment intent
                 var amountInCents = (int)(booking.TotalPrice * 100);
-                var clientSecret = await _paymentService.CreatePaymentIntentAsync(amountInCents);
-                var paymentIntentId = clientSecret; // Simplified; in production, retrieve actual ID
+                var paymentIntentId = await _paymentService.CreatePaymentIntentAsync(amountInCents, bookingId.ToString());
 
-                // Verify payment (simplified; in production, confirm with Stripe API)
+                // Confirm payment intent (simplified; in production, client confirms)
                 var paymentIntentService = new Stripe.PaymentIntentService();
-                var paymentIntent = await paymentIntentService.GetAsync(paymentIntentId);
+                var confirmOptions = new PaymentIntentConfirmOptions { PaymentMethod = paymentDto.PaymentToken };
+                var paymentIntent = await paymentIntentService.ConfirmAsync(paymentIntentId, confirmOptions);
                 if (paymentIntent.Status != "succeeded")
                 {
                     _logger.LogWarning("Stripe payment not succeeded for Booking {BookingId}: Status={Status}", bookingId, paymentIntent.Status);
                     return BadRequest(new { Error = "Payment not completed." });
                 }
 
+                var customer = await _customerService.GetCustomerByIdAsync(booking.UserProfileID);
+                if (customer == null)
+                {
+                    _logger.LogWarning("Customer not found for UserProfileID {UserProfileID}", booking.UserProfileID);
+                    return BadRequest(new { Error = "Customer not found." });
+                }
+
                 var payment = new Payment
                 {
                     BookingId = bookingId,
-                    Amount = amountInCents,
-                    PaymentDate = DateTime.UtcNow,
+                    Amount = amountInCents / 100m,
+                    Currency = "USD",
                     PaymentMethod = "Stripe",
-                    Status = PaymentStatus.Completed,
-                    StripePaymentIntentId = paymentIntentId
+                    TransactionId = paymentIntentId,
+                    Status = PaymentStatus.Succeeded,
+                    CustomerId = booking.UserProfileID,
+                    CreatedAt = DateTime.UtcNow
                 };
 
-                await _repository.AddPaymentAsync(payment);
+                await _context.Payments.AddAsync(payment);
                 booking.Status = BookingStatus.Confirmed;
-                await _repository.UpdateBookingAsync(booking);
-                await _repository.UpdateRoomAvailabilityAsync(booking.RoomId);
+                _context.Bookings.Update(booking);
 
                 // Send payment confirmation email
-                var customer = new Customer { Id = booking.UserProfileID, Email = "customer@example.com" }; // Placeholder
-                var room = await _repository.GetRoomByIdAsync(booking.RoomId);
+                var room = await _context.Rooms.FindAsync(booking.RoomId);
                 if (room != null)
                 {
-                    await _emailSender.SendPaymentConfirmationEmailAsync(customer.Email, booking, room, paymentIntentId);
+                    var emailBody = _sanitizer.Sanitize(
+                        $"<h3>Payment Confirmation</h3><p>Your payment for Booking #{bookingId} ({room.Name}) has been received.</p>");
+                    await _emailSender.SendEmailAsync(customer.Email, "Payment Confirmation", emailBody);
                 }
 
-                _logger.LogInformation("Stripe payment completed for Booking {BookingId}", bookingId);
-                return Ok(new { Message = "Payment successful", PaymentId = payment.Id, ClientSecret = clientSecret });
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Stripe payment completed for Booking {BookingId}, Payment {PaymentId}", bookingId, payment.Id);
+                return Ok(new { Message = "Payment successful", PaymentId = payment.Id, ClientSecret = paymentIntent.ClientSecret });
             }
-            catch (Stripe.StripeException ex)
+            catch (StripeException ex)
             {
                 _logger.LogError(ex, "Stripe error processing payment for Booking {BookingId}", bookingId);
                 return StatusCode(500, new { Error = $"Payment error: {ex.Message}" });
@@ -316,6 +354,149 @@ namespace hotel_and_resort.Controllers
             {
                 _logger.LogError(ex, "Error processing Stripe payment for Booking {BookingId}", bookingId);
                 return StatusCode(500, new { Error = "Failed to process payment." });
+            }
+        }
+
+        [HttpPost("create-checkout-session")]
+        [Authorize]
+        [EnableRateLimiting("AuthPolicy")]
+        public async Task<IActionResult> CreateCheckoutSession([FromBody] CreateCheckoutSessionRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid checkout session request: {Errors}", string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
+                    return BadRequest(new { Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
+                }
+
+                var userProfileIdClaim = User.FindFirst("UserProfileID")?.Value;
+                if (!int.TryParse(userProfileIdClaim, out var userProfileId))
+                {
+                    _logger.LogWarning("Invalid UserProfileID claim for user {UserId}", User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                    return Unauthorized(new { Error = "Invalid user profile." });
+                }
+
+                var booking = await _repository.GetBookingByIdAsync(request.BookingId);
+                if (booking == null || booking.UserProfileID != userProfileId)
+                {
+                    _logger.LogWarning("Booking {BookingId} not found or unauthorized for UserProfileID {UserProfileID}", request.BookingId, userProfileId);
+                    return NotFound(new { Error = "Booking not found or unauthorized." });
+                }
+
+                if (booking.Status != BookingStatus.Pending)
+                {
+                    _logger.LogWarning("Booking {BookingId} is not in a payable state: CurrentStatus={Status}", request.BookingId, booking.Status);
+                    return BadRequest(new { Error = "Booking is not in a payable state." });
+                }
+
+                var session = await _paymentService.CreateCheckoutSessionAsync(
+                    request.BookingId,
+                    userProfileId,
+                    request.SuccessUrl,
+                    request.CancelUrl);
+
+                return Ok(new { SessionId = session.Id, SessionUrl = session.Url });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating checkout session for booking {BookingId}", request.BookingId);
+                return StatusCode(500, new { Error = "Internal server error" });
+            }
+        }
+
+        [HttpPost("stripe/webhook")]
+        public async Task<IActionResult> StripeWebhook()
+        {
+            try
+            {
+                var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+                var stripeEvent = EventUtility.ConstructEvent(
+                    json,
+                    Request.Headers["Stripe-Signature"],
+                    _configuration["Stripe:WebhookSecret"]);
+
+                if (stripeEvent.Type == "checkout.session.completed")
+                {
+                    var session = stripeEvent.Data.Object as Stripe.Checkout.Session;
+                    if (session == null)
+                    {
+                        _logger.LogWarning("Invalid Stripe session received.");
+                        return BadRequest(new { Error = "Invalid session" });
+                    }
+
+                    var paymentIntentId = session.PaymentIntentId;
+                    if (!session.Metadata.TryGetValue("BookingId", out var bookingIdStr) || !int.TryParse(bookingIdStr, out var bookingId))
+                    {
+                        _logger.LogWarning("Invalid or missing BookingId in session metadata.");
+                        return BadRequest(new { Error = "Invalid BookingId" });
+                    }
+
+                    if (!session.Metadata.TryGetValue("CustomerId", out var customerIdStr) || !int.TryParse(customerIdStr, out var customerId))
+                    {
+                        _logger.LogWarning("Invalid or missing CustomerId in session metadata.");
+                        return BadRequest(new { Error = "Invalid CustomerId" });
+                    }
+
+                    var customer = await _customerService.GetCustomerByIdAsync(customerId);
+                    if (customer == null)
+                    {
+                        _logger.LogWarning("Customer not found for CustomerId {CustomerId}", customerId);
+                        return BadRequest(new { Error = "Customer not found." });
+                    }
+
+                    var payment = new Payment
+                    {
+                        BookingId = bookingId,
+                        Amount = session.AmountTotal!.Value / 100m, // Convert cents to dollars
+                        Currency = session.Currency,
+                        PaymentMethod = "Stripe",
+                        TransactionId = paymentIntentId,
+                        Status = PaymentStatus.Succeeded,
+                        CustomerId = customerId,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    await _context.Payments.AddAsync(payment);
+                    var booking = await _context.Bookings.FindAsync(bookingId);
+                    if (booking != null)
+                    {
+                        booking.Status = BookingStatus.Confirmed;
+                        _context.Bookings.Update(booking);
+
+                        // Send payment confirmation email
+                        var room = await _context.Rooms.FindAsync(booking.RoomId);
+                        if (room != null)
+                        {
+                            var emailBody = _sanitizer.Sanitize(
+                                $"<h3>Payment Confirmation</h3><p>Your payment for Booking #{bookingId} ({room.Name}) has been received.</p>");
+                            await _emailSender.SendEmailAsync(customer.Email, "Payment Confirmation", emailBody);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Booking {BookingId} not found.", bookingId);
+                        return BadRequest(new { Error = "Booking not found" });
+                    }
+
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation("Payment processed for booking {BookingId}, payment {PaymentId}", bookingId, payment.Id);
+                    return Ok();
+                }
+
+                _logger.LogWarning("Unhandled Stripe event type: {EventType}", stripeEvent.Type);
+                return Ok();
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogError(ex, "Stripe error processing webhook");
+                return BadRequest(new { Error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing Stripe webhook");
+                return StatusCode(500, new { Error = "Internal server error" });
             }
         }
 
@@ -373,11 +554,12 @@ namespace hotel_and_resort.Controllers
 
                 // Update booking with session ID
                 booking.PaymentIntentId = session.PaymentIntentId;
-                await _repository.UpdateBookingAsync(booking);
+                _context.Bookings.Update(booking);
+                await _context.SaveChangesAsync();
 
                 return Ok(new { SessionId = session.Id, Url = session.Url });
             }
-            catch (Stripe.StripeException ex)
+            catch (StripeException ex)
             {
                 _logger.LogError(ex, "Stripe error creating Checkout Session for Booking {BookingId}", bookingId);
                 return StatusCode(500, new { Error = $"Checkout error: {ex.Message}" });
@@ -399,14 +581,14 @@ namespace hotel_and_resort.Controllers
                 // Sanitize input
                 paymentId = int.Parse(_sanitizer.Sanitize(paymentId.ToString()));
 
-                var payment = await _repository.GetPaymentByIdAsync(paymentId);
+                var payment = await _context.Payments.FindAsync(paymentId);
                 if (payment == null)
                 {
                     _logger.LogWarning("Payment {PaymentId} not found", paymentId);
                     return NotFound(new { Error = "Payment not found." });
                 }
 
-                if (payment.Status != PaymentStatus.Completed)
+                if (payment.Status != PaymentStatus.Succeeded)
                 {
                     _logger.LogWarning("Payment {PaymentId} is not eligible for refund", paymentId);
                     return BadRequest(new { Error = "Payment is not eligible for refund." });
@@ -415,11 +597,11 @@ namespace hotel_and_resort.Controllers
                 bool success;
                 if (payment.PaymentMethod == "PayFast")
                 {
-                    success = await _paymentService.InitiatePayFastRefundAsync(paymentId, payment.Amount / 100m, payment.BookingId);
+                    success = await _paymentService.InitiatePayFastRefundAsync(paymentId, payment.Amount, payment.BookingId);
                 }
                 else if (payment.PaymentMethod == "Stripe")
                 {
-                    success = await _paymentService.InitiateStripeRefundAsync(payment.StripePaymentIntentId);
+                    success = await _paymentService.InitiateStripeRefundAsync(payment.TransactionId);
                 }
                 else
                 {
@@ -430,15 +612,25 @@ namespace hotel_and_resort.Controllers
                 if (success)
                 {
                     payment.Status = PaymentStatus.Refunded;
-                    var booking = await _repository.GetBookingByIdAsync(payment.BookingId);
+                    var booking = await _context.Bookings.FindAsync(payment.BookingId);
                     if (booking != null)
                     {
                         booking.Status = BookingStatus.Refunded;
-                        await _repository.UpdateBookingAsync(booking);
-                        await _repository.UpdateRoomAvailabilityAsync(booking.RoomId);
+                        _context.Bookings.Update(booking);
+                        await _roomService.UpdateRoomAvailabilityAsync(booking.RoomId, true);
                     }
 
-                    await _repository.UpdatePaymentAsync(payment);
+                    var customer = await _customerService.GetCustomerByIdAsync(payment.CustomerId);
+                    if (customer != null)
+                    {
+                        var emailBody = _sanitizer.Sanitize(
+                            $"<h3>Refund Confirmation</h3><p>Your refund for Booking #{payment.BookingId} has been processed.</p>");
+                        await _emailSender.SendEmailAsync(customer.Email, "Refund Confirmation", emailBody);
+                    }
+
+                    _context.Payments.Update(payment);
+                    await _context.SaveChangesAsync();
+
                     _logger.LogInformation("Refund initiated for Payment {PaymentId}", paymentId);
                     return Ok(new { Message = "Refund processed successfully." });
                 }
@@ -458,5 +650,15 @@ namespace hotel_and_resort.Controllers
     {
         [Required]
         public string PaymentToken { get; set; }
+    }
+
+    public class CreateCheckoutSessionRequest
+    {
+        [Required]
+        public int BookingId { get; set; }
+        [Required]
+        public string SuccessUrl { get; set; }
+        [Required]
+        public string CancelUrl { get; set; }
     }
 }

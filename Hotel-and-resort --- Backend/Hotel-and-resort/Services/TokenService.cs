@@ -1,6 +1,8 @@
-﻿using Hotel_and_resort.Models;
+﻿using hotel_and_resort.Models;
+using Hotel_and_resort.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
@@ -14,17 +16,42 @@ namespace hotel_and_resort.Services
     {
         private readonly IConfiguration _configuration;
         private readonly UserManager<User> _userManager;
+        private readonly ILogger<TokenService> _logger;
 
-        public TokenService(IConfiguration configuration, UserManager<User> userManager)
+        public TokenService(
+            IConfiguration configuration,
+            UserManager<User> userManager,
+            ILogger<TokenService> logger)
         {
-            _configuration = configuration;
-            _userManager = userManager;
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public string GenerateToken(User user, IList<string> roles)
         {
             var jwtSettings = _configuration.GetSection("Jwt");
-            var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]);
+            if (!jwtSettings.GetChildren().Any())
+            {
+                _logger.LogError("JWT settings are missing in configuration.");
+                throw new InvalidOperationException("JWT settings are missing.");
+            }
+
+            var keyString = jwtSettings["Key"];
+            if (string.IsNullOrEmpty(keyString))
+            {
+                _logger.LogError("JWT Key is missing in configuration.");
+                throw new InvalidOperationException("JWT Key is missing.");
+            }
+            var key = Encoding.ASCII.GetBytes(keyString);
+
+            var expiryMinutes = 15.0; // Default
+            if (!string.IsNullOrEmpty(jwtSettings["ExpiryInMinutes"]) &&
+                !double.TryParse(jwtSettings["ExpiryInMinutes"], out expiryMinutes))
+            {
+                _logger.LogWarning("Invalid JWT ExpiryInMinutes: {Value}. Using default: 15 minutes.", jwtSettings["ExpiryInMinutes"]);
+            }
+
             var claims = new List<Claim>
             {
                 new(ClaimTypes.NameIdentifier, user.Id),
@@ -43,7 +70,7 @@ namespace hotel_and_resort.Services
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddMinutes(double.Parse(jwtSettings["ExpiryInMinutes"])),
+                Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
                 Issuer = jwtSettings["Issuer"],
                 Audience = jwtSettings["Audience"]
@@ -51,6 +78,7 @@ namespace hotel_and_resort.Services
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
+            _logger.LogInformation("Generated JWT for user {UserId}", user.Id);
             return tokenHandler.WriteToken(token);
         }
 
@@ -65,7 +93,7 @@ namespace hotel_and_resort.Services
                 ValidIssuer = jwtSettings["Issuer"],
                 ValidAudience = jwtSettings["Audience"],
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSettings["Key"])),
-                ValidateLifetime = false // Allow expired tokens
+                ValidateLifetime = false
             };
 
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -75,6 +103,7 @@ namespace hotel_and_resort.Services
                 if (securityToken is not JwtSecurityToken jwtSecurityToken ||
                     !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
                 {
+                    _logger.LogWarning("Invalid token algorithm for refresh token.");
                     throw new SecurityTokenException("Invalid token");
                 }
 
@@ -82,6 +111,7 @@ namespace hotel_and_resort.Services
             }
             catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Failed to validate expired token.");
                 throw new SecurityTokenException("Invalid token", ex);
             }
         }

@@ -25,7 +25,7 @@
           "Microsoft.Extensions.Identity.Stores": "8.0.3",
           "Microsoft.NET.Test.Sdk": "17.8.0",
           "Moq": "4.20.72",
-          "Stripe.net": "47.3.0",
+          "Stripe.net": "47.0.0",
           "Swashbuckle.AspNetCore": "7.2.0",
           "Vonage": "7.16.0",
           "xunit": "2.9.3",
@@ -1398,15 +1398,15 @@
           }
         }
       },
-      "Stripe.net/47.3.0": {
+      "Stripe.net/47.0.0": {
         "dependencies": {
           "Newtonsoft.Json": "13.0.3",
           "System.Configuration.ConfigurationManager": "8.0.0"
         },
         "runtime": {
           "lib/net8.0/Stripe.net.dll": {
-            "assemblyVersion": "47.3.0.0",
-            "fileVersion": "47.3.0.0"
+            "assemblyVersion": "47.0.0.0",
+            "fileVersion": "47.0.0.0"
           }
         }
       },
@@ -2664,12 +2664,12 @@
       "path": "standardsocketshttphandler/2.2.0.8",
       "hashPath": "standardsocketshttphandler.2.2.0.8.nupkg.sha512"
     },
-    "Stripe.net/47.3.0": {
+    "Stripe.net/47.0.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-7stlwbwgKVZgRe5UWjwFTg6sMKzQ89CNkSuJ4Cp+kB9NdlCZNlWfrlfs3F251ZNovxudZKOVBP6LvJRIDX5owA==",
-      "path": "stripe.net/47.3.0",
-      "hashPath": "stripe.net.47.3.0.nupkg.sha512"
+      "sha512": "sha512-GPGZPYtxGd/T/DbOdn8YY4rTVuC6yt7Jbc4SwrJJzWnMFlB4eU4uukpj8P7QEdEqxbwLvFWM9QnCIUKR8pAD1Q==",
+      "path": "stripe.net/47.0.0",
+      "hashPath": "stripe.net.47.0.0.nupkg.sha512"
     },
     "Swashbuckle.AspNetCore/7.2.0": {
       "type": "package",

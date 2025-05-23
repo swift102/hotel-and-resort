@@ -1945,7 +1945,7 @@
           "lib/netstandard2.1/StandardSocketsHttpHandler.dll": {}
         }
       },
-      "Stripe.net/47.3.0": {
+      "Stripe.net/47.0.0": {
         "type": "package",
         "dependencies": {
           "Newtonsoft.Json": "13.0.3",
@@ -6035,10 +6035,10 @@
         "standardsocketshttphandler.nuspec"
       ]
     },
-    "Stripe.net/47.3.0": {
-      "sha512": "7stlwbwgKVZgRe5UWjwFTg6sMKzQ89CNkSuJ4Cp+kB9NdlCZNlWfrlfs3F251ZNovxudZKOVBP6LvJRIDX5owA==",
+    "Stripe.net/47.0.0": {
+      "sha512": "GPGZPYtxGd/T/DbOdn8YY4rTVuC6yt7Jbc4SwrJJzWnMFlB4eU4uukpj8P7QEdEqxbwLvFWM9QnCIUKR8pAD1Q==",
       "type": "package",
-      "path": "stripe.net/47.3.0",
+      "path": "stripe.net/47.0.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -6059,7 +6059,7 @@
         "lib/netcoreapp3.1/Stripe.net.xml",
         "lib/netstandard2.0/Stripe.net.dll",
         "lib/netstandard2.0/Stripe.net.xml",
-        "stripe.net.47.3.0.nupkg.sha512",
+        "stripe.net.47.0.0.nupkg.sha512",
         "stripe.net.nuspec"
       ]
     },
@@ -8853,7 +8853,7 @@
       "Microsoft.Extensions.Identity.Stores >= 8.0.3",
       "Microsoft.NET.Test.Sdk >= 17.8.0",
       "Moq >= 4.20.72",
-      "Stripe.net >= 47.3.0",
+      "Stripe.net >= 46.12.0",
       "Swashbuckle.AspNetCore >= 7.2.0",
       "Vonage >= 7.16.0",
       "xunit >= 2.9.3",
@@ -8982,7 +8982,7 @@
           },
           "Stripe.net": {
             "target": "Package",
-            "version": "[47.3.0, )"
+            "version": "[46.12.0, )"
           },
           "Swashbuckle.AspNetCore": {
             "target": "Package",
@@ -9025,5 +9025,17 @@
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "NU1603",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Hotel-and-resort depends on Stripe.net (>= 46.12.0) but Stripe.net 46.12.0 was not found. Stripe.net 47.0.0 was resolved instead.",
+      "libraryId": "Stripe.net",
+      "targetGraphs": [
+        "net8.0"
+      ]
+    }
+  ]
 }

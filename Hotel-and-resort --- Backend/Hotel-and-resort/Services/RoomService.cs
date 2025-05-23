@@ -102,6 +102,20 @@ namespace hotel_and_resort.Services
             }
         }
 
+
+        public async Task UpdateRoomAvailabilityAsync(int roomId, bool isAvailable)
+        {
+            var room = await _context.Rooms.FindAsync(roomId);
+            if (room == null)
+            {
+                throw new ArgumentException($"Room with ID {roomId} not found.");
+            }
+
+            room.IsAvailable = isAvailable;
+            _context.Rooms.Update(room);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task DeleteRoomAsync(int id)
         {
             try

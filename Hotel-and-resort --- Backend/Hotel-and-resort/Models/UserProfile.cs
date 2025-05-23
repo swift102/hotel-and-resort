@@ -1,10 +1,13 @@
 ﻿using hotel_and_resort.Models;
+using System.ComponentModel.DataAnnotations;
 namespace Hotel_and_resort.Models
 {
     public class UserProfile
     {
-        public int? UserProfileID { get; set; }
+        [Key]
+        public int UserProfileID { get; set; }
+        [MaxLength(500)]
         public string? ProfileDescription { get; set; }
-        public ICollection<User> Users { get; set; }
+        public User? User { get; set; }
     }
 }
