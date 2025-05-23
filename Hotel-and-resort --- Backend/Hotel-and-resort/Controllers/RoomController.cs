@@ -1,10 +1,12 @@
-﻿using hotel_and_resort.DTOs;
+﻿using Ganss.Xss;
 using hotel_and_resort.Models;
-using Hotel_and_resort.Services.hotel_and_resort.Services;
+using hotel_and_resort.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
-using System.Linq;
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace hotel_and_resort.Controllers
@@ -14,361 +16,136 @@ namespace hotel_and_resort.Controllers
     public class RoomController : ControllerBase
     {
         private readonly IRepository _repository;
+        private readonly RoomService _roomService;
         private readonly ILogger<RoomController> _logger;
+        private readonly IHtmlSanitizer _sanitizer;
 
-        public RoomController(IRepository repository, ILogger<RoomController> logger)
+        public RoomController(IRepository repository, RoomService roomService, ILogger<RoomController> logger)
         {
             _repository = repository;
+            _roomService = roomService;
             _logger = logger;
+            _sanitizer = new HtmlSanitizer();
         }
 
-        // GET: api/rooms
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<RoomReadDTO>>> GetRooms()
+        public async Task<IActionResult> GetRooms()
         {
             try
             {
-                var rooms = await _repository.GetRooms();
-                if (rooms == null || !rooms.Any())
-                {
-                    _logger.LogWarning("No rooms found.");
-                    return NotFound();
-                }
-
-                var roomDtos = rooms.Select(r => new RoomReadDTO
-                {
-                    Id = r.Id,
-                    Name = r.Name,
-                    Description = r.Description,
-                    Price = r.Price,
-                    Capacity = r.Capacity,
-                    Features = r.Features,
-                    IsAvailable = r.IsAvailable
-                });
-
-                return Ok(roomDtos);
+                var rooms = await _repository.GetRoomsAsync();
+                return Ok(rooms);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching rooms");
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error retrieving rooms");
+                return StatusCode(500, new { Error = "Failed to retrieve rooms." });
             }
         }
 
-        // GET: api/rooms/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<RoomReadDTO>> GetRoom(int id)
+        public async Task<IActionResult> GetRoomById(int id)
         {
             try
             {
-                var room = await _repository.GetRoomById(id);
-                if (room == null)
+                if (id <= 0)
                 {
-                    _logger.LogWarning("Room not found for ID: {Id}", id);
-                    return NotFound();
+                    _logger.LogWarning("Invalid room ID: {RoomId}", id);
+                    return BadRequest(new { Error = "Invalid room ID." });
                 }
 
-                var roomDto = new RoomReadDTO
+                var room = await _repository.GetRoomByIdAsync(id);
+                if (room == null)
                 {
-                    Id = room.Id,
-                    Name = room.Name,
-                    Description = room.Description,
-                    Price = room.Price,
-                    Capacity = room.Capacity,
-                    Features = room.Features,
-                    IsAvailable = room.IsAvailable
-                };
-
-                return Ok(roomDto);
+                    _logger.LogWarning("Room not found: {RoomId}", id);
+                    return NotFound(new { Error = "Room not found." });
+                }
+                return Ok(room);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching room");
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error retrieving room {RoomId}", id);
+                return StatusCode(500, new { Error = "Failed to retrieve room." });
             }
         }
 
-        // POST: api/rooms
-        [HttpPost]
-        public async Task<ActionResult<RoomReadDTO>> AddRoom(RoomCreateDTO roomDto)
+        [HttpPost("book")]
+        [Authorize(Roles = "Guest,Admin")]
+        public async Task<IActionResult> BookRoom([FromBody] BookingRequest model)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             try
             {
-                _logger.LogInformation("Received request to add a new room: {RoomDetails}", roomDto);
+                // Sanitize inputs
+                model.RoomId = int.Parse(_sanitizer.Sanitize(model.RoomId.ToString()));
+                model.CheckIn = model.CheckIn.Date;
+                model.CheckOut = model.CheckOut.Date;
 
-                if (string.IsNullOrEmpty(roomDto.Name) || roomDto.Price <= 0)
+                // Validate dates
+                if (model.CheckIn < DateTime.UtcNow.Date || model.CheckOut <= model.CheckIn)
                 {
-                    _logger.LogWarning("Room name or price is invalid.");
-                    return BadRequest("Room name and valid price are required.");
+                    _logger.LogWarning("Invalid booking dates: CheckIn={CheckIn}, CheckOut={CheckOut}", model.CheckIn, model.CheckOut);
+                    return BadRequest(new { Error = "Invalid check-in or check-out date." });
                 }
 
-                var room = new Room
+                // Validate room availability
+                var isAvailable = await _roomService.IsRoomAvailableAsync(model.RoomId, model.CheckIn, model.CheckOut);
+                if (!isAvailable)
                 {
-                    Name = roomDto.Name,
-                    Description = roomDto.Description,
-                    Price = roomDto.Price,
-                    Capacity = roomDto.Capacity,
-                    Features = roomDto.Features,
-                    IsAvailable = roomDto.IsAvailable
+                    _logger.LogWarning("Room {RoomId} not available for dates {CheckIn} to {CheckOut}",
+                        model.RoomId, model.CheckIn, model.CheckOut);
+                    return BadRequest(new { Error = "Room is not available for the selected dates." });
+                }
+
+                // Get user context
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("Unauthorized booking attempt");
+                    return Unauthorized(new { Error = "User not authenticated." });
+                }
+
+                var userProfileId = User.FindFirst("UserProfileID")?.Value;
+                if (string.IsNullOrEmpty(userProfileId) || !int.TryParse(userProfileId, out int profileId))
+                {
+                    _logger.LogWarning("UserProfileID not found or invalid for user {UserId}", userId);
+                    return BadRequest(new { Error = "User profile not configured." });
+                }
+
+                var booking = new Booking
+                {
+                    RoomId = model.RoomId,
+                    UserId = userId,
+                    UserProfileID = profileId,
+                    CheckIn = model.CheckIn,
+                    CheckOut = model.CheckOut,
+                    TotalPrice = await _roomService.CalculatePrice(model.RoomId, model.CheckIn, model.CheckOut),
+                    CreatedAt = DateTime.UtcNow
                 };
 
-                var addedRoom = await _repository.AddRoom(room);
-                _logger.LogInformation("Room added successfully: {RoomId}", addedRoom.Id);
-
-                var createdRoomDto = new RoomReadDTO
-                {
-                    Id = addedRoom.Id,
-                    Name = addedRoom.Name,
-                    Description = addedRoom.Description,
-                    Price = addedRoom.Price,
-                    Capacity = addedRoom.Capacity,
-                    Features = addedRoom.Features,
-                    IsAvailable = addedRoom.IsAvailable
-                };
-
-                return CreatedAtAction(nameof(GetRoom), new { id = addedRoom.Id }, createdRoomDto);
+                await _repository.AddBookingAsync(booking);
+                _logger.LogInformation("Room booked successfully: BookingId={BookingId}, UserId={UserId}", booking.Id, userId);
+                return Ok(new { Message = "Room booked successfully.", BookingId = booking.Id });
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding room");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        // PUT: api/rooms/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateRoom(int id, RoomUpdateDTO roomDto)
-        {
-            try
-            {
-                var room = await _repository.GetRoomById(id);
-                if (room == null)
-                {
-                    _logger.LogWarning("Room not found for ID: {Id}", id);
-                    return NotFound();
-                }
-
-                room.Name = roomDto.Name;
-                room.Description = roomDto.Description;
-                room.Price = roomDto.Price;
-                room.Capacity = roomDto.Capacity;
-                room.Features = roomDto.Features;
-                room.IsAvailable = roomDto.IsAvailable;
-
-                await _repository.UpdateRoom(room);
-
-                return NoContent();
-            }
-            catch (System.Exception ex)
-            {
-                _logger.LogError(ex, "Error updating room");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        // DELETE: api/rooms/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteRoom(int id)
-        {
-            try
-            {
-                var room = await _repository.GetRoomById(id);
-                if (room == null)
-                {
-                    _logger.LogWarning("Room not found for ID: {Id}", id);
-                    return NotFound();
-                }
-
-                await _repository.DeleteRoom(id);
-                _logger.LogInformation("Room deleted successfully: {RoomId}", id);
-
-                return NoContent();
-            }
-            catch (System.Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting room");
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error booking room {RoomId} for user {UserId}", model.RoomId, User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                return StatusCode(500, new { Error = "Failed to book room." });
             }
         }
     }
-    namespace hotel_and_resort.Controllers
+
+    public class BookingRequest
     {
-        [Route("api/[controller]")]
-        [ApiController]
-        public class RoomController : ControllerBase
-        {
-            private readonly RoomService _roomService;
-            private readonly ILogger<RoomController> _logger;
+        [Required]
+        public int RoomId { get; set; }
 
-            public RoomController(RoomService roomService, ILogger<RoomController> logger)
-            {
-                _roomService = roomService;
-                _logger = logger;
-            }
+        [Required]
+        public DateTime CheckIn { get; set; }
 
-            [HttpGet]
-            public async Task<ActionResult<IEnumerable<RoomReadDTO>>> GetRooms(int page = 1, int pageSize = 10)
-            {
-                try
-                {
-                    var rooms = await _roomService.GetRoomsAsync(page, pageSize);
-                    if (!rooms.Any())
-                    {
-                        _logger.LogWarning("No rooms found.");
-                        return NotFound();
-                    }
-
-                    var roomDtos = rooms.Select(r => new RoomReadDTO
-                    {
-                        Id = r.Id, // Changed from ID to Id
-                        Name = r.Name,
-                        Description = r.Description,
-                        Price = r.Price,
-                        Capacity = r.Capacity,
-                        Features = r.Features,
-                        IsAvailable = r.IsAvailable
-                    });
-
-                    return Ok(roomDtos);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error fetching rooms");
-                    return StatusCode(500, "Internal server error");
-                }
-            }
-
-            [HttpGet("{id}")]
-            public async Task<ActionResult<RoomReadDTO>> GetRoom(int id)
-            {
-                try
-                {
-                    var room = await _roomService.GetRoomByIdAsync(id);
-                    if (room == null)
-                    {
-                        _logger.LogWarning("Room not found for ID: {Id}", id);
-                        return NotFound();
-                    }
-
-                    var roomDto = new RoomReadDTO
-                    {
-                        Id = room.Id,
-                        Name = room.Name,
-                        Description = room.Description,
-                        Price = room.Price,
-                        Capacity = room.Capacity,
-                        Features = room.Features,
-                        IsAvailable = room.IsAvailable
-                    };
-
-                    return Ok(roomDto);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error fetching room");
-                    return StatusCode(500, "Internal server error");
-                }
-            }
-
-            [HttpPost]
-            public async Task<ActionResult<RoomReadDTO>> AddRoom([FromBody] RoomCreateDTO roomDto)
-            {
-                try
-                {
-                    if (!ModelState.IsValid)
-                    {
-                        return BadRequest(ModelState);
-                    }
-
-                    var room = new Room
-                    {
-                        Name = roomDto.Name,
-                        Description = roomDto.Description,
-                        Price = roomDto.Price,
-                        Capacity = roomDto.Capacity,
-                        Features = roomDto.Features,
-                        IsAvailable = roomDto.IsAvailable
-                    };
-
-                    var addedRoom = await _roomService.AddRoomAsync(room);
-                    _logger.LogInformation("Room added successfully: {RoomId}", addedRoom.Id);
-
-                    var createdRoomDto = new RoomReadDTO
-                    {
-                        Id = addedRoom.Id,
-                        Name = addedRoom.Name,
-                        Description = addedRoom.Description,
-                        Price = addedRoom.Price,
-                        Capacity = addedRoom.Capacity,
-                        Features = addedRoom.Features,
-                        IsAvailable = addedRoom.IsAvailable
-                    };
-
-                    return CreatedAtAction(nameof(GetRoom), new { id = addedRoom.Id }, createdRoomDto);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error adding room");
-                    return StatusCode(500, "Internal server error");
-                }
-            }
-
-            [HttpPut("{id}")]
-            public async Task<IActionResult> UpdateRoom(int id, [FromBody] RoomUpdateDTO roomDto)
-            {
-                try
-                {
-                    if (!ModelState.IsValid)
-                    {
-                        return BadRequest(ModelState);
-                    }
-
-                    var room = await _roomService.GetRoomByIdAsync(id);
-                    if (room == null)
-                    {
-                        _logger.LogWarning("Room not found for ID: {Id}", id);
-                        return NotFound();
-                    }
-
-                    room.Name = roomDto.Name;
-                    room.Description = roomDto.Description;
-                    room.Price = roomDto.Price;
-                    room.Capacity = roomDto.Capacity;
-                    room.Features = roomDto.Features;
-                    room.IsAvailable = roomDto.IsAvailable;
-
-                    await _roomService.UpdateRoomAsync(room);
-                    return NoContent();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error updating room");
-                    return StatusCode(500, "Internal server error");
-                }
-            }
-
-            [HttpDelete("{id}")]
-            public async Task<IActionResult> DeleteRoom(int id)
-            {
-                try
-                {
-                    var room = await _roomService.GetRoomByIdAsync(id);
-                    if (room == null)
-                    {
-                        _logger.LogWarning("Room not found for ID: {Id}", id);
-                        return NotFound();
-                    }
-
-                    await _roomService.DeleteRoomAsync(id);
-                    _logger.LogInformation("Room deleted successfully: {RoomId}", id);
-                    return NoContent();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error deleting room");
-                    return StatusCode(500, "Internal server error");
-                }
-            }
-        }
+        [Required]
+        public DateTime CheckOut { get; set; }
     }
 }

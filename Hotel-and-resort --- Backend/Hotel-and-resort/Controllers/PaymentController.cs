@@ -1,6 +1,6 @@
 ﻿using hotel_and_resort.Models;
 using Hotel_and_resort.Models;
-using Hotel_and_resort.Services;
+using hotel_and_resort.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -146,7 +146,7 @@ namespace hotel_and_resort.Controllers
                 if (payment.Status == PaymentStatus.Completed)
                 {
                     booking.Status = BookingStatus.Confirmed;
-                    await _repository.UpdateRoomAvailability(booking.RoomId);
+                    await _repository.UpdateRoomAvailabilityAsync(booking.RoomId);
                     _logger.LogInformation("PayFast payment completed for Booking {BookingId}", bookingId);
                 }
                 else

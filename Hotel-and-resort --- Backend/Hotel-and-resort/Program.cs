@@ -1,7 +1,7 @@
+using AspNetCoreRateLimit;
 using hotel_and_resort.Models;
 using hotel_and_resort.Services;
 using Hotel_and_resort.Models;
-using Hotel_and_resort.Services.hotel_and_resort.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
@@ -13,8 +13,29 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Stripe;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Add rate-limiting
+builder.Services.AddMemoryCache();
+builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("AuthPolicy", context => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
+});
+
+
 
 // Add JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -63,6 +84,7 @@ builder.Services.AddScoped<PricingService>();
 builder.Services.AddScoped<hotel_and_resort.Services.CustomerService>(); // Disambiguate CustomerService
 builder.Services.AddHttpClient<PaymentService>();
 builder.Services.AddScoped<PaymentService>();
+builder.Services.AddScoped<hotel_and_resort.Services.TokenService>();
 
 // Configure SmtpSettings
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));

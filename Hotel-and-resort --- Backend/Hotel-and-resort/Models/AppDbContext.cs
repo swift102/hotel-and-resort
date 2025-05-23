@@ -22,6 +22,7 @@ namespace hotel_and_resort.Models
         public DbSet<Image> Images { get; set; }
         public DbSet<UserProfile> UserProfiles { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -80,6 +81,15 @@ namespace hotel_and_resort.Models
                 new IdentityRole { Name = "Staff", NormalizedName = "STAFF" },
                 new IdentityRole { Name = "Guest", NormalizedName = "GUEST" }
             );
+
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<RefreshToken>()
+                .HasKey(t => t.Id);
+            modelBuilder.Entity<RefreshToken>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(t => t.UserId);
         }
     }
 

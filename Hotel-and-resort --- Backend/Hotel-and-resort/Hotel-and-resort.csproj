@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <!-- Identity Packages -->
+    <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
     <PackageReference Include="EntityFrameworkCore.InMemory.HierarchyId" Version="8.0.0" />
     <PackageReference Include="FluentValidation" Version="11.11.0" />
     <PackageReference Include="HtmlSanitizer" Version="9.0.884" />

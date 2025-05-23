@@ -113,7 +113,7 @@ namespace hotel_and_resort.Controllers
                 try
                 {
                     // Check room availability
-                    var isAvailable = await _repository.IsRoomAvailable(bookingDto.RoomId, bookingDto.CheckIn, bookingDto.CheckOut);
+                    var isAvailable = await _repository.IsRoomAvailableAsync(bookingDto.RoomId, bookingDto.CheckIn, bookingDto.CheckOut);
                     if (!isAvailable)
                     {
                         _logger.LogWarning("Room {RoomId} is not available for dates {CheckIn} to {CheckOut}",
@@ -124,7 +124,7 @@ namespace hotel_and_resort.Controllers
                     var booking = new Booking
                     {
                         RoomId = bookingDto.RoomId,
-                        CustomerId = customer.Id,
+                        //CustomerId = customer.Id,
                         CheckIn = bookingDto.CheckIn,
                         CheckOut = bookingDto.CheckOut,
                         Status = BookingStatus.Pending,
@@ -270,6 +270,7 @@ namespace hotel_and_resort.Controllers
                     _logger.LogError("Room not found for booking {BookingId}", booking.Id);
                     return;
                 }
+
                 await _emailSender.SendBookingConfirmationEmailAsync(customer.Email, booking, room);
                 var smsMessage = $"Booking {booking.Id} confirmed for {booking.CheckIn:dd-MM-yyyy} to {booking.CheckOut:dd-MM-yyyy}.";
                 await _smsSender.SendSmsAsync(customer.Phone, smsMessage);

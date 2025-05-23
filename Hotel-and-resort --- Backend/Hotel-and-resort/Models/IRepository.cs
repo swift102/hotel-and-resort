@@ -61,17 +61,16 @@ namespace hotel_and_resort.Models
         Task<Customer> DeleteCustomer(int id);
 
         // Room Methods
-        Task<List<Room>> GetRooms();
-        Task<Room> GetRoomById(int id);
+        Task<List<Room>> GetRoomsAsync();
         Task<Room> GetRoomByIdAsync(int id);
-        Task<Room> AddRoom(Room room);
-        Task<Room> UpdateRoom(Room room);
-        Task<Room> DeleteRoom(int id);
+        Task<Room> AddRoomAsync(Room room);
+        Task<Room> UpdateRoomAsync(Room room);
+        Task<Room> DeleteRoomAsync(int id);
+        Task<bool> IsRoomAvailableAsync(int roomId, DateTime checkIn, DateTime checkOut);
+        Task<List<Booking>> GetBookingsByRoomIdAsync(int roomId);
+        Task UpdateRoomAvailabilityAsync(int roomId);
+
         Task<bool> IsRoomAvailable(int roomId, DateTime checkIn, DateTime checkOut);
-
-        Task UpdateRoomAvailability(int roomId);
-
-
 
         // Booking Methods
         Task<IEnumerable<Booking>> GetAllBookingsAsync(int page, int pageSize);

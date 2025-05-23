@@ -1,7 +1,9 @@
 ﻿using hotel_and_resort.Models;
 using Hotel_and_resort.Models;
+using hotel_and_resort.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Stripe;
 using Stripe.Checkout;
@@ -10,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 
 
 namespace hotel_and_resort.Models
@@ -18,13 +21,15 @@ namespace hotel_and_resort.Models
     {
         private readonly AppDbContext _context;
         private readonly ILogger<Repository> _logger;
+        private readonly IMemoryCache _cache;
 
 
-
-        public Repository(AppDbContext context, ILogger<Repository> logger)
+        public Repository(AppDbContext context, ILogger<Repository> logger, IMemoryCache cache)
         {
             _context = context;
             _logger = logger;
+            _cache = cache;
+
         }
 
 
@@ -90,11 +95,20 @@ namespace hotel_and_resort.Models
         {
             return await _context.Rooms.ToListAsync();
         }
-
-        public async Task<Room> GetRoomById(int id)
+     
+        public async Task<List<Room>> GetRoomsAsync()
         {
-            return await _context.Rooms.FindAsync(id);
+            try
+            {
+                return await _context.Rooms.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching rooms");
+                throw new RepositoryException("Failed to retrieve rooms.", ex);
+            }
         }
+
 
         public async Task<Room> GetRoomByIdAsync(int id)
         {
@@ -109,31 +123,146 @@ namespace hotel_and_resort.Models
             }
         }
 
-        public async Task<Room> AddRoom(Room room)
-        {
-            var result = await _context.Rooms.AddAsync(room);
-            await SaveChangesAsync();
-            return result.Entity;
-        }
 
-        public async Task<Room> UpdateRoom(Room room)
-        {
-            var result = _context.Rooms.Update(room);
-            await SaveChangesAsync();
-            return result.Entity;
-        }
 
-        public async Task<Room> DeleteRoom(int id)
+        public async Task<Room> AddRoomAsync(Room room)
         {
-            var room = await _context.Rooms.FindAsync(id);
-            if (room != null)
+            try
             {
-                _context.Rooms.Remove(room);
-                await SaveChangesAsync();
+                var result = await _context.Rooms.AddAsync(room);
+                await _context.SaveChangesAsync();
+                return result.Entity;
             }
-            return room;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding room");
+                throw new RepositoryException("Failed to add room.", ex);
+            }
         }
 
+        public async Task<Room> UpdateRoomAsync(Room room)
+        {
+            try
+            {
+                var result = _context.Rooms.Update(room);
+                await _context.SaveChangesAsync();
+                return result.Entity;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating room with ID {RoomId}", room.Id);
+                throw new RepositoryException($"Failed to update room with ID {room.Id}.", ex);
+            }
+        }
+
+        public async Task<Room> DeleteRoomAsync(int id)
+        {
+            try
+            {
+                var room = await _context.Rooms.FindAsync(id);
+                if (room != null)
+                {
+                    _context.Rooms.Remove(room);
+                    await _context.SaveChangesAsync();
+                }
+                return room;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting room with ID {RoomId}", id);
+                throw new RepositoryException($"Failed to delete room with ID {id}.", ex);
+            }
+        }
+
+        public async Task<bool> IsRoomAvailableAsync(int roomId, DateTime checkIn, DateTime checkOut)
+        {
+            try
+            {
+                var isBooked = await _context.Bookings
+                    .Where(b => b.RoomId == roomId &&
+                                b.Status != BookingStatus.Cancelled &&
+                                checkIn < b.CheckOut && checkOut > b.CheckIn)
+                    .Select(b => b.Id)
+                    .Take(1)
+                    .ToListAsync();
+
+                return !isBooked.Any();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking availability for room {RoomId}", roomId);
+                throw new RepositoryException($"Failed to check availability for room {roomId}.", ex);
+            }
+        }
+
+
+        public async Task<List<Booking>> GetBookingsByRoomIdAsync(int roomId)
+        {
+            try
+            {
+                return await _context.Bookings
+                    .Where(b => b.RoomId == roomId)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching bookings for room {RoomId}", roomId);
+                throw new RepositoryException($"Failed to retrieve bookings for room {roomId}.", ex);
+            }
+        }
+
+        public async Task<bool> RoomExistsAsync(int roomId)
+        {
+            try
+            {
+                return await _context.Rooms.AnyAsync(r => r.Id == roomId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking existence of room {RoomId}", roomId);
+                throw new RepositoryException($"Failed to check existence of room {roomId}.", ex);
+            }
+        }
+
+        public async Task UpdateRoomAvailabilityAsync(int roomId)
+        {
+            try
+            {
+                var room = await _context.Rooms.FindAsync(roomId);
+                if (room == null)
+                {
+                    _logger.LogWarning("Room not found: {RoomId}", roomId);
+                    return;
+                }
+
+                var hasActiveBookings = await _context.Bookings
+                    .AnyAsync(b => b.RoomId == roomId && b.Status == BookingStatus.Confirmed);
+
+                room.IsAvailable = !hasActiveBookings;
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating availability for room {RoomId}", roomId);
+                throw new RepositoryException($"Failed to update availability for room {roomId}.", ex);
+            }
+        }
+
+        //public async Task AddBookingAsync(Booking booking)
+        //{
+        //    try
+        //    {
+        //        await _context.Bookings.AddAsync(booking);
+        //        await _context.SaveChangesAsync();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error adding booking for room {RoomId}", booking.RoomId);
+        //        throw new RepositoryException("Failed to add booking.", ex);
+        //    }
+        //}
+
+      
         public IEnumerable<Booking> GetReservationsForRoom(int roomId)
         {
             // Retrieve reservations for the given room ID from the data store
@@ -236,6 +365,22 @@ namespace hotel_and_resort.Models
             }
         }
 
+        //public async Task<Booking> UpdateBookingAsync(Booking booking)
+        //{
+        //    try
+        //    {
+        //        var result = _context.Bookings.Update(booking);
+        //        await _context.SaveChangesAsync();
+        //        return result.Entity;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error updating booking with ID {BookingId}", booking.Id);
+        //        throw new RepositoryException($"Failed to update booking with ID {booking.Id}.", ex);
+        //    }
+        //}
+
+
         public async Task<bool> IsRoomAvailable(int roomId, DateTime checkIn, DateTime checkOut)
         {
             try
@@ -258,19 +403,7 @@ namespace hotel_and_resort.Models
             }
         }
 
-        public async Task<bool> RoomExistsAsync(int roomId)
-        {
-            try
-            {
-                return await _context.Rooms.AnyAsync(r => r.Id == roomId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error checking existence of room {RoomId}", roomId);
-                throw new RepositoryException($"Failed to check existence of room {roomId}.", ex);
-            }
-        }
-
+       
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {
             try
@@ -340,12 +473,13 @@ namespace hotel_and_resort.Models
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<Booking>> GetBookingsByCustomerId(int customerId)
-        {
-            return await _context.Bookings
-                .Where(b => b.CustomerId == customerId)
-                .ToListAsync();
-        }
+        //public async Task<List<Booking>> GetBookingsByCustomerId(int customerId)
+        //{
+        //    return await _context.Bookings
+        //        .Where(b => b.CustomerId == customerId)
+        //        .ToListAsync();
+        //}
+
 
         public async Task<List<Booking>> GetBookingsByRoomId(int roomId)
         {
@@ -353,6 +487,8 @@ namespace hotel_and_resort.Models
                 .Where(b => b.RoomId == roomId)
                 .ToListAsync();
         }
+
+     
 
         //public async Task<bool> IsRoomAvailable(int roomId, DateTime checkIn, DateTime checkOut)
         //{
@@ -363,7 +499,7 @@ namespace hotel_and_resort.Models
         //    return !isBooked;
         //}
 
-        
+
         public async Task<List<Room>> GetRoomsByAmenities(List<int> amenityIds)
         {
             return await _context.Rooms

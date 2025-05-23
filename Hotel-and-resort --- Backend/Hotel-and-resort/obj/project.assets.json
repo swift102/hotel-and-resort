@@ -35,6 +35,24 @@
           }
         }
       },
+      "AspNetCoreRateLimit/5.0.0": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Caching.Abstractions": "6.0.0",
+          "Microsoft.Extensions.Logging.Abstractions": "6.0.3",
+          "Microsoft.Extensions.Options": "6.0.0",
+          "Newtonsoft.Json": "13.0.2"
+        },
+        "compile": {
+          "lib/net6.0/AspNetCoreRateLimit.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/AspNetCoreRateLimit.dll": {}
+        },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ]
+      },
       "Azure.Core/1.35.0": {
         "type": "package",
         "dependencies": {
@@ -3148,6 +3166,18 @@
         "lib/netstandard2.0/AngleSharp.Css.dll",
         "lib/netstandard2.0/AngleSharp.Css.xml",
         "logo.png"
+      ]
+    },
+    "AspNetCoreRateLimit/5.0.0": {
+      "sha512": "6fq9+o1maGADUmpK/PvcF0DtXW2+7bSkIL7MDIo/agbIHKN8XkMQF4oze60DO731WaQmHmK260hB30FwPzCmEg==",
+      "type": "package",
+      "path": "aspnetcoreratelimit/5.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "aspnetcoreratelimit.5.0.0.nupkg.sha512",
+        "aspnetcoreratelimit.nuspec",
+        "lib/net6.0/AspNetCoreRateLimit.dll"
       ]
     },
     "Azure.Core/1.35.0": {
@@ -8806,6 +8836,7 @@
   },
   "projectFileDependencyGroups": {
     "net8.0": [
+      "AspNetCoreRateLimit >= 5.0.0",
       "EntityFrameworkCore.InMemory.HierarchyId >= 8.0.0",
       "FluentValidation >= 11.11.0",
       "HtmlSanitizer >= 9.0.884",
@@ -8879,6 +8910,10 @@
       "net8.0": {
         "targetAlias": "net8.0",
         "dependencies": {
+          "AspNetCoreRateLimit": {
+            "target": "Package",
+            "version": "[5.0.0, )"
+          },
           "EntityFrameworkCore.InMemory.HierarchyId": {
             "target": "Package",
             "version": "[8.0.0, )"

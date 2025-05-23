@@ -5,17 +5,17 @@ namespace hotel_and_resort.Models
 {
     public class Room
     {
-        public int Id { get; set; } // Changed from ID to Id
+        public int Id { get; set; }
         [Required, MaxLength(100)]
         public string? Name { get; set; }
         public string? Description { get; set; }
         [Range(1, int.MaxValue)]
-        public int Price { get; set; }
+        public int PricePerNight { get; set; }
         [Range(1, int.MaxValue)]
         public int Capacity { get; set; }
         public string? Features { get; set; }
-        public string Category { get; set; } = "Standard"; // Default value
-        public decimal DynamicPrice { get; set; } // Consider using this for dynamic pricing logic
+        public string Category { get; set; } = "Standard";
+        public decimal DynamicPrice { get; set; }
         public bool IsAvailable { get; set; } = true;
 
         public ICollection<Amenities>? Amenities { get; set; }

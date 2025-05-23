@@ -285,3 +285,8 @@ namespace Hotel_and_resort.Controllers
     }
 }
 
+public class LoginDto
+{
+    public string UserName { get; set; }
+    public string Password { get; set; }
+}

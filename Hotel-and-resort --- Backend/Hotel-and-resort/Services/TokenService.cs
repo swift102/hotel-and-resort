@@ -1,14 +1,14 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Hotel_and_resort.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.AspNetCore.Identity;
-using Hotel_and_resort.Models;
 
-namespace Hotel_and_resort.Services
+namespace hotel_and_resort.Services
 {
     public class TokenService
     {
@@ -27,17 +27,14 @@ namespace Hotel_and_resort.Services
             var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]);
             var claims = new List<Claim>
             {
-              // Use Id from IdentityUser base class
-                 new(ClaimTypes.NameIdentifier, user.Id),
-                 new(ClaimTypes.Name, user.UserName ?? string.Empty),
-                 new(ClaimTypes.Email, user.Email ?? string.Empty),
-              // Add custom claims for your extended properties
-                 new("Name", user.Name ?? string.Empty),
-                 new("Surname", user.Surname ?? string.Empty),
-                 new("UserProfileID", user.UserProfileID.ToString())
+                new(ClaimTypes.NameIdentifier, user.Id),
+                new(ClaimTypes.Name, user.UserName ?? string.Empty),
+                new(ClaimTypes.Email, user.Email ?? string.Empty),
+                new("Name", user.Name ?? string.Empty),
+                new("Surname", user.Surname ?? string.Empty),
+                new("UserProfileID", user.UserProfileID.ToString())
             };
 
-            // Add roles to the token
             foreach (var role in roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
@@ -55,6 +52,38 @@ namespace Hotel_and_resort.Services
             var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
+        }
+
+        public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
+        {
+            var jwtSettings = _configuration.GetSection("Jwt");
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtSettings["Issuer"],
+                ValidAudience = jwtSettings["Audience"],
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSettings["Key"])),
+                ValidateLifetime = false // Allow expired tokens
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            try
+            {
+                var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);
+                if (securityToken is not JwtSecurityToken jwtSecurityToken ||
+                    !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    throw new SecurityTokenException("Invalid token");
+                }
+
+                return principal;
+            }
+            catch (Exception ex)
+            {
+                throw new SecurityTokenException("Invalid token", ex);
+            }
         }
     }
 }

@@ -1,11 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "JqPpnTq6Awk=",
+  "dgSpecHash": "A3zAuXrtcjU=",
   "success": true,
   "projectFilePath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\WESLEY\\.nuget\\packages\\anglesharp\\0.17.1\\anglesharp.0.17.1.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\anglesharp.css\\0.17.0\\anglesharp.css.0.17.0.nupkg.sha512",
+    "C:\\Users\\WESLEY\\.nuget\\packages\\aspnetcoreratelimit\\5.0.0\\aspnetcoreratelimit.5.0.0.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\azure.core\\1.35.0\\azure.core.1.35.0.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\azure.identity\\1.10.3\\azure.identity.1.10.3.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\bouncycastle.cryptography\\2.5.1\\bouncycastle.cryptography.2.5.1.nupkg.sha512",
