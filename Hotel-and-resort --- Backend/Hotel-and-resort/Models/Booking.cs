@@ -29,7 +29,7 @@ namespace hotel_and_resort.Models
         [Required]
         public int UserProfileID { get; set; }
 
-        public int? CustomerId { get; set; }
+        public int CustomerId { get; set; }
 
         [Required]
         public DateTime CheckIn { get; set; }

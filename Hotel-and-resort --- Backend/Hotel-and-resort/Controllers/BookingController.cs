@@ -28,13 +28,15 @@ namespace hotel_and_resort.Controllers
         private readonly ISmsSenderService _smsSender;
         private readonly ILogger<BookingController> _logger;
         private readonly HtmlSanitizer _sanitizer;
+        private readonly RoomService _roomService;
 
         public BookingController(
             IRepository repository,
             CustomerService customerService,
             IEmailSender emailSender,
             ISmsSenderService smsSender,
-            ILogger<BookingController> logger)
+            ILogger<BookingController> logger,
+            RoomService roomService)
         {
             _repository = repository;
             _customerService = customerService;
@@ -42,6 +44,7 @@ namespace hotel_and_resort.Controllers
             _smsSender = smsSender;
             _logger = logger;
             _sanitizer = new HtmlSanitizer();
+            _roomService = roomService;
         }
 
         [HttpPost]
@@ -92,20 +95,22 @@ namespace hotel_and_resort.Controllers
                 var customer = await _customerService.GetCustomerByEmailAsync(bookingDto.CustomerEmail);
                 if (customer == null)
                 {
+                    var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                     customer = await _customerService.AddCustomerAsync(new Customer
                     {
                         FirstName = bookingDto.CustomerFirstName,
                         LastName = bookingDto.CustomerLastName,
                         Email = bookingDto.CustomerEmail,
-                        Phone = bookingDto.CustomerPhone
+                        Phone = bookingDto.CustomerPhone,
+                        UserId = userId // Associate with current user
                     });
                 }
 
                 // Check user ownership
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!User.IsInRole("Admin") && customer.Id.ToString() != userId)
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!User.IsInRole("Admin") && customer.UserId != currentUserId)
                 {
-                    _logger.LogWarning("Unauthorized booking attempt by user {UserId} for customer {CustomerId}", userId, customer.Id);
+                    _logger.LogWarning("Unauthorized booking attempt by user {UserId} for customer {CustomerId}", currentUserId, customer.Id);
                     return Forbid();
                 }
 
@@ -122,12 +127,16 @@ namespace hotel_and_resort.Controllers
                         return Conflict(new { Error = "Room is not available for the selected dates." });
                     }
 
+                    // Calculate total price
+                    var totalPrice = await _roomService.CalculatePrice(bookingDto.RoomId, bookingDto.CheckIn, bookingDto.CheckOut);
+
                     var booking = new Booking
                     {
                         RoomId = bookingDto.RoomId,
-                        //CustomerId = customer.Id,
+                        CustomerId = customer.Id,
                         CheckIn = bookingDto.CheckIn,
                         CheckOut = bookingDto.CheckOut,
+                        TotalPrice = totalPrice,
                         Status = BookingStatus.Pending,
                         CreatedAt = DateTime.UtcNow
                     };
@@ -191,9 +200,10 @@ namespace hotel_and_resort.Controllers
                 }
 
                 // Restrict to admin or booking owner
+                var customer = await _customerService.GetCustomerByIdAsync(booking.CustomerId);
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if( !User.IsInRole("Admin") && booking.CustomerId.ToString() != userId)
-                    {
+                if (!User.IsInRole("Admin") && customer.UserId != userId)
+                {
                     _logger.LogWarning("Unauthorized access to booking {BookingId} by user {UserId}", id, userId);
                     return Forbid();
                 }
@@ -203,7 +213,7 @@ namespace hotel_and_resort.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching booking with ID {BookingId}", id);
-                return StatusCode(500, new { Error = "Failed to retrieve booking." });
+                return StatusCode(500, new { Error = "Failed to fetch booking." });
             }
         }
 

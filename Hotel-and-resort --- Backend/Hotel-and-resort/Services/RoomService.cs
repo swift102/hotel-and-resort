@@ -151,23 +151,33 @@ namespace hotel_and_resort.Services
         {
             try
             {
-                var room = await _repository.GetRoomByIdAsync(roomId);
+                var room = await _context.Rooms.FindAsync(roomId);
                 if (room == null)
                 {
                     _logger.LogWarning("Room not found: {RoomId}", roomId);
-                    throw new InvalidOperationException("Room not found.");
+                    throw new InvalidOperationException($"Room with ID {roomId} not found.");
                 }
 
-                var days = (checkOut - checkIn).Days;
-                if (days <= 0)
+                if (checkOut <= checkIn)
                 {
-                    _logger.LogWarning("Invalid booking duration: {Days} days", days);
+                    _logger.LogWarning("Invalid dates: CheckOut {CheckOut} is not after CheckIn {CheckIn}", checkOut, checkIn);
                     throw new ArgumentException("Check-out date must be after check-in date.");
                 }
 
-                var totalPrice = await _pricingService.CalculateDynamicPrice(roomId, checkIn, checkOut);
-                _logger.LogInformation("Calculated price for room {RoomId}: {TotalPrice} for {Days} days", roomId, totalPrice, days);
-                return totalPrice;
+                // Calculate number of nights
+                var nights = (checkOut - checkIn).Days;
+
+                // Base price (assumes Room model has BasePrice)
+                var basePrice = room.BasePrice;
+
+                // Apply dynamic pricing (example: +10% during peak season, Dec-Jan)
+                var isPeakSeason = checkIn.Month == 12 || checkIn.Month == 1;
+                var priceMultiplier = isPeakSeason ? 1.1m : 1.0m;
+
+                var totalPrice = basePrice * nights * priceMultiplier;
+
+                _logger.LogInformation("Calculated price for room {RoomId}: {TotalPrice:C} for {Nights} nights", roomId, totalPrice, nights);
+                return Math.Round(totalPrice, 2);
             }
             catch (Exception ex)
             {

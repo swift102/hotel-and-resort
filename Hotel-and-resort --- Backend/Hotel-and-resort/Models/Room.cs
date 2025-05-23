@@ -16,6 +16,11 @@ namespace hotel_and_resort.Models
         public string? Features { get; set; }
         public string Category { get; set; } = "Standard";
         public decimal DynamicPrice { get; set; }
+
+        [Required]
+        public decimal BasePrice { get; set; }
+
+        public int RoomNumber { get; set; }
         public bool IsAvailable { get; set; } = true;
 
         public ICollection<Amenities>? Amenities { get; set; }
