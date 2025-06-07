@@ -6,6 +6,7 @@ namespace hotel_and_resort.DTOs
     // DTO for retrieving booking details (GET endpoints)
     public class BookingResponseDTO
     {
+
         public int Id { get; set; }
         public int RoomId { get; set; }
         public int CustomerId { get; set; }
@@ -14,10 +15,17 @@ namespace hotel_and_resort.DTOs
         [Required]
         public DateTime CheckOut { get; set; }
         [Range(0, int.MaxValue)]
-        public int TotalPrice { get; set; }
+        public decimal TotalPrice { get; set; }
         [MaxLength(50)]
         public string Status { get; set; }
+        [Range(1, 10)]
+        public int GuestCount { get; set; }
+        public bool IsRefundable { get; set; }
+        public DateTime? CancelledAt { get; set; }
+        [Range(0, 100)]
+        public decimal RefundPercentage { get; set; }
     }
+
 
     // DTO for updating an existing booking (PUT endpoint)
     public class BookingUpdateDTO
@@ -27,9 +35,11 @@ namespace hotel_and_resort.DTOs
         [Required]
         public DateTime CheckOut { get; set; }
         [Range(0, int.MaxValue)]
-        public int TotalPrice { get; set; }
+        public decimal TotalPrice { get; set; }
         [MaxLength(50)]
         public string Status { get; set; }
+        [Range(1, 10)]
+        public int GuestCount { get; set; }
     }
 
 
@@ -59,11 +69,20 @@ namespace hotel_and_resort.DTOs
         [Required]
         public DateTime CheckOut { get; set; }
         public bool IsRefundable { get; set; }
+        [Range(1, 10)]
+        public int GuestCount { get; set; } = 1;
     }
 
     public class BookingStatusDTO
     {
         [Required]
         public BookingStatus Status { get; set; }
+    }
+
+    public class BookingCancellationDTO
+    {
+        [Required]
+        public int BookingId { get; set; }
+        public string CancellationReason { get; set; }
     }
 }

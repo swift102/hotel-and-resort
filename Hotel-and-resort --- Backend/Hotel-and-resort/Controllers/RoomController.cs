@@ -3,6 +3,7 @@ using hotel_and_resort.Models;
 using hotel_and_resort.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.ComponentModel.DataAnnotations;
@@ -15,13 +16,15 @@ namespace hotel_and_resort.Controllers
     [ApiController]
     public class RoomController : ControllerBase
     {
+        private readonly AppDbContext _context;
         private readonly IRepository _repository;
         private readonly RoomService _roomService;
         private readonly ILogger<RoomController> _logger;
         private readonly IHtmlSanitizer _sanitizer;
 
-        public RoomController(IRepository repository, RoomService roomService, ILogger<RoomController> logger)
+        public RoomController(AppDbContext context, IRepository repository, RoomService roomService, ILogger<RoomController> logger)
         {
+            _context = context;
             _repository = repository;
             _roomService = roomService;
             _logger = logger;
@@ -135,6 +138,74 @@ namespace hotel_and_resort.Controllers
                 return StatusCode(500, new { Error = "Failed to book room." });
             }
         }
+
+        [HttpPost("cancel")]
+        [Authorize(Roles = "Guest,Admin")]
+        public async Task<IActionResult> CancelBooking([FromBody] BookingCancellationRequest model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            // Declare userId at the beginning of the method to ensure it's accessible throughout
+            string userId = null;
+
+            try
+            {
+                // Sanitize inputs
+                model.BookingId = int.Parse(_sanitizer.Sanitize(model.BookingId.ToString()));
+                model.CancellationReason = _sanitizer.Sanitize(model.CancellationReason);
+
+                // Get user context
+                userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("Unauthorized cancellation attempt for booking {BookingId}", model.BookingId);
+                    return Unauthorized(new { Error = "User not authenticated." });
+                }
+
+                // Fetch booking to verify ownership
+                var booking = await _repository.GetBookingByIdAsync(model.BookingId);
+                if (booking == null)
+                {
+                    _logger.LogWarning("Booking not found: {BookingId}", model.BookingId);
+                    return NotFound(new { Error = $"Booking with ID {model.BookingId} not found." });
+                }
+
+                if (booking.UserId != userId && !User.IsInRole("Admin"))
+                {
+                    _logger.LogWarning("User {UserId} not authorized to cancel booking {BookingId}", userId, model.BookingId);
+                    return Unauthorized(new { Error = "User not authorized to cancel this booking." });
+                }
+
+                // Get user email (assume CustomerService retrieves it)
+                var customer = await _context.Customers.FirstOrDefaultAsync(c => c.UserId == userId);
+                if (customer == null)
+                {
+                    _logger.LogWarning("Customer not found for user {UserId}", userId);
+                    return BadRequest(new { Error = "Customer not found." });
+                }
+
+                // Cancel booking
+                await _roomService.CancelBookingAsync(model.BookingId, model.CancellationReason, customer.Email, User.IsInRole("Admin"));
+
+                return Ok(new { Message = "Booking cancelled successfully.", RefundPercentage = booking.RefundPercentage });
+            }
+            catch (BookingNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "Booking not found: {BookingId}", model.BookingId);
+                return NotFound(new { Error = ex.Message });
+            }
+            catch (RoomValidationException ex)
+            {
+                _logger.LogWarning(ex, "Validation error for cancelling booking {BookingId}", model.BookingId);
+                return BadRequest(new { Error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling booking {BookingId} for user {UserId}", model.BookingId, userId);
+                return StatusCode(500, new { Error = "Failed to cancel booking." });
+            }
+        }
     }
 
     public class BookingRequest
@@ -147,5 +218,20 @@ namespace hotel_and_resort.Controllers
 
         [Required]
         public DateTime CheckOut { get; set; }
+
+        [Required]
+        [Range(1, 10)]
+        public int GuestCount { get; set; } = 1;
+        public bool IsRefundable { get; set; }
+    }
+
+
+    public class BookingCancellationRequest
+    {
+        [Required]
+        public int BookingId { get; set; }
+
+        [MaxLength(500)]
+        public string CancellationReason { get; set; }
     }
 }

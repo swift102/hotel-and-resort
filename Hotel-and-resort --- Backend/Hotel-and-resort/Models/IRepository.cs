@@ -83,10 +83,11 @@ namespace hotel_and_resort.Models
         Task UpdateBookingAsync(Booking booking);
         Task<bool> RoomExistsAsync(int roomId);
         Task<IDbContextTransaction> BeginTransactionAsync();
+        //Task<Booking> GetBookingByIdAsync(int bookingId);
 
 
         // Payment Methods
-     
+
         Task<Payment> ProcessPaymentAndUpdateBooking(int bookingId, int amount, string paymentToken);
 
         Task AddPaymentAsync(Payment payment);

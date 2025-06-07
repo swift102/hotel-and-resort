@@ -18,19 +18,22 @@ namespace hotel_and_resort.Services
         private readonly IDistributedCache _cache;
         private readonly ILogger<RoomService> _logger;
         private readonly PricingService _pricingService;
+        private readonly IEmailSender _emailSender;
 
         public RoomService(
             AppDbContext context,
             IRepository repository,
            IDistributedCache cache,
             ILogger<RoomService> logger,
-            PricingService pricingService)
+            PricingService pricingService,
+            IEmailSender emailSender)
         {
             _context = context;
             _repository = repository;
             _cache = cache;
-            _logger = logger;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _pricingService = pricingService;
+            _emailSender = emailSender ?? throw new ArgumentNullException(nameof(emailSender));
         }
 
         public async Task<IEnumerable<Room>> GetRooms()
@@ -148,25 +151,16 @@ namespace hotel_and_resort.Services
         {
             try
             {
-                var exists = await _repository.RoomExistsAsync(roomId);
-                if (!exists)
-                {
-                    _logger.LogWarning("Room not found: {RoomId}", roomId);
-                    return false;
-                }
-
-                var isAvailable = await _repository.IsRoomAvailableAsync(roomId, checkIn, checkOut);
-                if (!isAvailable)
-                {
-                    _logger.LogInformation("Room {RoomId} is not available for {CheckIn} to {CheckOut}", roomId, checkIn, checkOut);
-                }
-
-                return isAvailable;
+                var hasConflicts = await _context.Bookings
+                    .AnyAsync(b => b.RoomId == roomId &&
+                                   b.Status != BookingStatus.Cancelled &&
+                                   !(checkOut <= b.CheckIn || checkIn >= b.CheckOut));
+                return !hasConflicts;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking availability for room {RoomId}", roomId);
-                throw;
+                throw new RoomServiceException($"Failed to check availability for room {roomId}.", ex);
             }
         }
 
@@ -178,43 +172,167 @@ namespace hotel_and_resort.Services
                 if (room == null)
                 {
                     _logger.LogWarning("Room not found: {RoomId}", roomId);
-                    throw new InvalidOperationException($"Room with ID {roomId} not found.");
+                    throw new RoomNotFoundException($"Room with ID {roomId} not found.");
                 }
 
-                if (checkOut <= checkIn)
-                {
-                    _logger.LogWarning("Invalid dates: CheckOut {CheckOut} is not after CheckIn {CheckIn}", checkOut, checkIn);
-                    throw new ArgumentException("Check-out date must be after check-in date.");
-                }
-
-                // Calculate number of nights
-                var nights = (checkOut - checkIn).Days;
-
-                // Base price (assumes Room model has BasePrice)
-                var basePrice = room.BasePrice;
-
-                // Apply dynamic pricing (example: +10% during peak season, Dec-Jan)
-                var isPeakSeason = checkIn.Month == 12 || checkIn.Month == 1;
-                var priceMultiplier = isPeakSeason ? 1.1m : 1.0m;
-
-                var totalPrice = basePrice * nights * priceMultiplier;
-
-                _logger.LogInformation("Calculated price for room {RoomId}: {TotalPrice:C} for {Nights} nights", roomId, totalPrice, nights);
-                return Math.Round(totalPrice, 2);
+                var days = (checkOut - checkIn).Days;
+                return room.DynamicPrice * days;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error calculating price for room {RoomId}", roomId);
-                throw;
+                throw new RoomServiceException($"Failed to calculate price for room {roomId}.", ex);
+            }
+        }
+
+        public async Task ValidateRoomCapacityAsync(int roomId, int guestCount, bool isAdmin)
+        {
+            try
+            {
+                var room = await _context.Rooms.FindAsync(roomId);
+                if (room == null)
+                {
+                    _logger.LogWarning("Room not found: {RoomId}", roomId);
+                    throw new RoomNotFoundException($"Room with ID {roomId} not found.");
+                }
+
+                if (guestCount > room.Capacity && !isAdmin)
+                {
+                    _logger.LogWarning("Guest count {GuestCount} exceeds capacity {Capacity} for room {RoomId}", guestCount, room.Capacity, roomId);
+                    throw new RoomValidationException($"Guest count {guestCount} exceeds room capacity {room.Capacity}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validating capacity for room {RoomId}", roomId);
+                throw new RoomServiceException($"Failed to validate capacity for room {roomId}.", ex);
+            }
+        }
+
+        public async Task<(bool IsCancellable, decimal RefundPercentage)> CanCancelBookingAsync(int bookingId, bool isAdmin)
+        {
+            try
+            {
+                var booking = await _context.Bookings
+                    .Include(b => b.Room)
+                    .FirstOrDefaultAsync(b => b.Id == bookingId);
+                if (booking == null)
+                {
+                    _logger.LogWarning("Booking not found: {BookingId}", bookingId);
+                    throw new BookingNotFoundException($"Booking with ID {bookingId} not found.");
+                }
+
+                if (booking.Status == BookingStatus.Cancelled)
+                {
+                    _logger.LogWarning("Booking already cancelled: {BookingId}", bookingId);
+                    return (false, 0);
+                }
+
+                if (booking.CheckOut < DateTime.UtcNow.Date)
+                {
+                    _logger.LogWarning("Cannot cancel past booking: {BookingId}", bookingId);
+                    return (false, 0);
+                }
+
+                if (isAdmin)
+                {
+                    return (true, 100); // Admins can cancel with full refund
+                }
+
+                if (!booking.IsRefundable)
+                {
+                    _logger.LogWarning("Non-refundable booking: {BookingId}", bookingId);
+                    return (false, 0);
+                }
+
+                var daysUntilCheckIn = (booking.CheckIn - DateTime.UtcNow.Date).Days;
+                if (daysUntilCheckIn >= 7)
+                {
+                    return (true, 100); // Full refund
+                }
+                else if (daysUntilCheckIn >= 3)
+                {
+                    return (true, 50); // Partial refund
+                }
+                else
+                {
+                    _logger.LogWarning("Too late to cancel booking: {BookingId}", bookingId);
+                    return (false, 0); // No refund
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking cancellation eligibility for booking {BookingId}", bookingId);
+                throw new RoomServiceException($"Failed to check cancellation for booking {bookingId}.", ex);
+            }
+        }
+
+        public async Task CancelBookingAsync(int bookingId, string cancellationReason, string userEmail, bool isAdmin)
+        {
+            try
+            {
+                var booking = await _context.Bookings
+                    .Include(b => b.Room)
+                    .FirstOrDefaultAsync(b => b.Id == bookingId);
+                if (booking == null)
+                {
+                    _logger.LogWarning("Booking not found: {BookingId}", bookingId);
+                    throw new BookingNotFoundException($"Booking with ID {bookingId} not found.");
+                }
+
+                var (isCancellable, refundPercentage) = await CanCancelBookingAsync(bookingId, isAdmin);
+                if (!isCancellable)
+                {
+                    _logger.LogWarning("Cancellation not allowed for booking: {BookingId}", bookingId);
+                    throw new RoomValidationException("Cancellation not allowed per policy.");
+                }
+
+                booking.Status = BookingStatus.Cancelled;
+                booking.CancelledAt = DateTime.UtcNow;
+                booking.RefundPercentage = refundPercentage;
+                _context.Bookings.Update(booking);
+                await _context.SaveChangesAsync();
+
+                // Send cancellation email
+                await _emailSender.SendBookingCancellationEmailAsync(userEmail, booking, booking.Room);
+
+                _logger.LogInformation("Booking cancelled: {BookingId}, Refund: {RefundPercentage}%", bookingId, refundPercentage);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling booking {BookingId}", bookingId);
+                throw new RoomServiceException($"Failed to cancel booking {bookingId}.", ex);
             }
         }
     }
 }
 
+// Custom Exception Classes
 public class RoomServiceException : Exception
 {
     public RoomServiceException(string message, Exception innerException)
         : base(message, innerException)
+    {
+    }
+}
+
+public class RoomNotFoundException : Exception
+{
+    public RoomNotFoundException(string message) : base(message)
+    {
+    }
+}
+
+public class BookingNotFoundException : Exception
+{
+    public BookingNotFoundException(string message) : base(message)
+    {
+    }
+}
+
+public class RoomValidationException : Exception
+{
+    public RoomValidationException(string message) : base(message)
     {
     }
 }

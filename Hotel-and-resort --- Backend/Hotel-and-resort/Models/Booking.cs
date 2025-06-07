@@ -43,10 +43,17 @@ namespace hotel_and_resort.Models
         [Required]
         public DateTime CreatedAt { get; set; }
 
+        public DateTime? CancelledAt { get; set; }
+
         [Required]
         public BookingStatus Status { get; set; } = BookingStatus.Pending;
-        public bool IsRefundable { get; set; } // New field
+        public bool IsRefundable { get; set; } 
 
+        [Range(1, 10)]
+        public int GuestCount { get; set; } = 1; // Default to 1 guest
+
+        [Range(0, 100)]
+        public decimal RefundPercentage { get; set; } // e.g., 100 for full refund, 50 for partial refund
         public string? PaymentIntentId { get; set; }
 
         // Navigation properties
