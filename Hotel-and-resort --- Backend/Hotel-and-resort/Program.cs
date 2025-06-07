@@ -18,19 +18,38 @@ using Microsoft.OpenApi.Models;
 using Middleware;
 using Stripe;
 using System.Text;
-using System.Threading.RateLimiting; 
+using System.Threading.RateLimiting;
+using AspNetCoreRateLimit; 
+
 
 
 
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add rate-limiting
+// Add rate limiting services with proper configuration
 builder.Services.AddMemoryCache();
-builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
-builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
+
+// Rate limiting stores
 builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
+builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+
+// Rate limiting configuration - use the correct service registration
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
+// Configure rate limiting options
+builder.Services.Configure<IpRateLimitOptions>(options =>
+{
+    builder.Configuration.GetSection("IpRateLimiting").Bind(options);
+});
+
+// Configure client rate limiting if needed
+builder.Services.Configure<ClientRateLimitOptions>(options =>
+{
+    builder.Configuration.GetSection("ClientRateLimiting").Bind(options);
+});
+
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -175,8 +194,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Middleware order is important!
+app.UseIpRateLimiting(); 
+
+// Custom middleware
+app.UseMiddleware<ExceptionHandlingMiddleware>(); 
 app.UseMiddleware<AuditLoggingMiddleware>();
-app.UseExceptionMiddleware();
+
+
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 app.UseAuthentication();
