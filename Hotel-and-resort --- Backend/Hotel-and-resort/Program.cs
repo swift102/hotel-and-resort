@@ -2,18 +2,26 @@ using AspNetCoreRateLimit;
 using hotel_and_resort.Models;
 using hotel_and_resort.Services;
 using Hotel_and_resort.Models;
+using Hotel_and_resort.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.Mvc; 
+using Microsoft.AspNetCore.Mvc.Versioning; 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Middleware;
 using Stripe;
 using System.Text;
-using System.Threading.RateLimiting;
+using System.Threading.RateLimiting; 
+
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +31,7 @@ builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection(
 builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
 builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
 builder.Services.AddRateLimiter(options =>
 {
     options.AddPolicy("AuthPolicy", context => RateLimitPartition.GetFixedWindowLimiter(
@@ -81,15 +90,54 @@ builder.Services.AddScoped<IRepository, Repository>();
 builder.Services.AddScoped<RoomService>();
 builder.Services.AddScoped<AmenityService>();
 builder.Services.AddScoped<PricingService>();
-builder.Services.AddScoped<CustomerService>();
+builder.Services.AddScoped<Hotel_and_resort.Services.CustomerService>();
 builder.Services.AddHttpClient<PaymentService>();
 builder.Services.AddScoped<PaymentService>();
 builder.Services.AddScoped<hotel_and_resort.Services.TokenService>();
 builder.Services.AddScoped<PaymentIntentService>(provider =>
     new PaymentIntentService(new StripeClient(builder.Configuration["Stripe:SecretKey"])));
 
+
+// Register RabbitMQ Event Publisher
+builder.Services.AddSingleton<IRabbitMqEventPublisher, RabbitMqEventPublisher>();
+
+
+
 // Configure SmtpSettings
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
+
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "HotelResort_";
+});
+
+// Add HTTPS redirection
+builder.Services.AddHttpsRedirection(options =>
+{
+    options.RedirectStatusCode = StatusCodes.Status307TemporaryRedirect;
+    options.HttpsPort = 443;
+});
+
+// Add HSTS
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+    options.Preload = true;
+});
+
+
+
+// Add API versioning
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+    options.ApiVersionReader = new UrlSegmentApiVersionReader();
+});
 
 // Register EmailSender for both interfaces
 builder.Services.AddSingleton<hotel_and_resort.Services.IEmailSender, EmailSender>();
@@ -127,6 +175,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseMiddleware<AuditLoggingMiddleware>();
+app.UseExceptionMiddleware();
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 app.UseAuthentication();

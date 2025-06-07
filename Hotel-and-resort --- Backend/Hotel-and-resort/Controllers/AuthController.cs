@@ -1,4 +1,5 @@
 ﻿using Ganss.Xss;
+using BCrypt.Net;
 using hotel_and_resort.Models;
 using hotel_and_resort.Services;
 using Hotel_and_resort.Models;
@@ -176,7 +177,7 @@ namespace hotel_and_resort.Controllers
                     // Create UserProfile
                     var userProfile = new UserProfile
                     {
-                        UserProfileID = customer.Id, // Align with Customer.Id for PaymentController
+                        UserProfileID = customer.Id, 
                         ProfileDescription = registerDto.ProfileDescription
                     };
                     await _context.UserProfiles.AddAsync(userProfile);
@@ -328,8 +329,8 @@ namespace hotel_and_resort.Controllers
                 }
 
                 var storedToken = await _context.RefreshTokens
-                    .FirstOrDefaultAsync(t => t.UserId == user.Id && t.Token == model.RefreshToken && t.ExpiryDate > DateTime.UtcNow);
-                if (storedToken == null)
+                    .FirstOrDefaultAsync(t => t.UserId == user.Id && t.ExpiryDate > DateTime.UtcNow);
+                if (storedToken == null || !BCrypt.Net.BCrypt.Verify(model.RefreshToken, storedToken.Token))
                 {
                     _logger.LogWarning("Invalid or expired refresh token for user {UserId}", user.Id);
                     return Unauthorized(new ErrorResponse { Message = "Invalid or expired refresh token" });
@@ -359,6 +360,7 @@ namespace hotel_and_resort.Controllers
                 return StatusCode(500, new ErrorResponse { Message = "Internal server error" });
             }
         }
+
 
         [HttpGet("confirm-email")]
         [EnableRateLimiting("AuthPolicy")]
@@ -397,10 +399,11 @@ namespace hotel_and_resort.Controllers
 
         private async Task StoreRefreshToken(User user, string refreshToken)
         {
+            var hashedToken = BCrypt.Net.BCrypt.HashPassword(refreshToken); // Corrected usage of HashPassword
             var token = new RefreshToken
             {
                 UserId = user.Id,
-                Token = refreshToken,
+                Token = hashedToken,
                 ExpiryDate = DateTime.UtcNow.AddDays(7)
             };
             await _context.RefreshTokens.AddAsync(token);
@@ -410,10 +413,11 @@ namespace hotel_and_resort.Controllers
         private async Task UpdateRefreshToken(User user, RefreshToken oldToken, string newRefreshToken)
         {
             _context.RefreshTokens.Remove(oldToken);
+           var hashedToken = BCrypt.Net.BCrypt.HashPassword(newRefreshToken); 
             var newToken = new RefreshToken
             {
                 UserId = user.Id,
-                Token = newRefreshToken,
+                Token = hashedToken,
                 ExpiryDate = DateTime.UtcNow.AddDays(7)
             };
             await _context.RefreshTokens.AddAsync(newToken);

@@ -161,12 +161,15 @@ namespace hotel_and_resort.Controllers
             try
             {
                 // Validate PayFast IP (simplified; use PayFast's official IP list in production)
+                var allowedIps = _configuration.GetSection("PayFast:AllowedIps").Get<string[]>(); 
+                var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
                 var remoteIp = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
-                if (remoteIp != "196.33.227.0" && remoteIp != "127.0.0.1") // Update with PayFast IPs
+                if (!allowedIps.Contains(clientIp))
                 {
-                    _logger.LogWarning("Unauthorized PayFast notification from IP {RemoteIp}", remoteIp);
-                    return Unauthorized(new { Error = "Invalid source IP." });
+                    _logger.LogWarning("Invalid PayFast notification IP: {ClientIp}", clientIp);
+                    return BadRequest(new ErrorResponse { Message = "Invalid notification source." });
                 }
+
 
                 var data = await new StreamReader(Request.Body).ReadToEndAsync();
                 var notification = HttpUtility.ParseQueryString(data);

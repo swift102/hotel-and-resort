@@ -1,9 +1,11 @@
 ﻿using hotel_and_resort.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -13,14 +15,14 @@ namespace hotel_and_resort.Services
     {
         private readonly AppDbContext _context;
         private readonly IRepository _repository;
-        private readonly IMemoryCache _cache;
+        private readonly IDistributedCache _cache;
         private readonly ILogger<RoomService> _logger;
         private readonly PricingService _pricingService;
 
         public RoomService(
             AppDbContext context,
             IRepository repository,
-            IMemoryCache cache,
+           IDistributedCache cache,
             ILogger<RoomService> logger,
             PricingService pricingService)
         {
@@ -31,29 +33,36 @@ namespace hotel_and_resort.Services
             _pricingService = pricingService;
         }
 
-        public async Task<IEnumerable<Room>> GetRoomsAsync(int page = 1, int pageSize = 10)
+        public async Task<IEnumerable<Room>> GetRooms()
         {
             try
             {
-                var cacheKey = $"rooms_page_{page}_size_{pageSize}";
-                if (!_cache.TryGetValue(cacheKey, out IEnumerable<Room> rooms))
+                var cacheKey = "rooms_all";
+                var cachedRooms = await _cache.GetStringAsync(cacheKey);
+                if (!string.IsNullOrEmpty(cachedRooms))
                 {
-                    rooms = await _context.Rooms
-                        .Skip((page - 1) * pageSize)
-                        .Take(pageSize)
-                        .ToListAsync();
-
-                    _cache.Set(cacheKey, rooms, TimeSpan.FromMinutes(10));
-                    _logger.LogInformation("Cached rooms for key {CacheKey}", cacheKey);
+                    _logger.LogInformation("Cache hit for rooms");
+                    return JsonSerializer.Deserialize<IEnumerable<Room>>(cachedRooms);
                 }
+
+                var rooms = await _repository.GetRoomsAsync();
+                var serializedRooms = JsonSerializer.Serialize(rooms);
+                await _cache.SetStringAsync(cacheKey, serializedRooms, new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+                });
+
+                _logger.LogInformation("Cache miss for rooms, fetched from database");
                 return rooms;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching rooms for page {Page}", page);
-                throw;
+                _logger.LogError(ex, "Error fetching rooms");
+                throw new RoomServiceException("Failed to retrieve rooms.", ex);
             }
         }
+
+
 
         public async Task<Room?> GetRoomByIdAsync(int id)
         {
@@ -199,5 +208,13 @@ namespace hotel_and_resort.Services
                 throw;
             }
         }
+    }
+}
+
+public class RoomServiceException : Exception
+{
+    public RoomServiceException(string message, Exception innerException)
+        : base(message, innerException)
+    {
     }
 }

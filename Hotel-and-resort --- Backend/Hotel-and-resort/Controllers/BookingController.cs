@@ -4,6 +4,7 @@ using hotel_and_resort.Models;
 using hotel_and_resort.Services;
 using Hotel_and_resort.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -13,6 +14,9 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
+using RabbitMQ.Client;
 using System.Threading.Tasks;
 using static hotel_and_resort.ViewModels.AmenitiesDTOs;
 
@@ -29,6 +33,9 @@ namespace hotel_and_resort.Controllers
         private readonly ILogger<BookingController> _logger;
         private readonly HtmlSanitizer _sanitizer;
         private readonly RoomService _roomService;
+        private readonly IConfiguration _configuration;
+
+       
 
         public BookingController(
             IRepository repository,
@@ -36,8 +43,9 @@ namespace hotel_and_resort.Controllers
             IEmailSender emailSender,
             ISmsSenderService smsSender,
             ILogger<BookingController> logger,
-            RoomService roomService)
-        {
+            RoomService roomService,
+              IConfiguration configuration)
+            {
             _repository = repository;
             _customerService = customerService;
             _emailSender = emailSender;
@@ -45,6 +53,7 @@ namespace hotel_and_resort.Controllers
             _logger = logger;
             _sanitizer = new HtmlSanitizer();
             _roomService = roomService;
+            _configuration = configuration;
         }
 
         [HttpPost]
@@ -266,10 +275,46 @@ namespace hotel_and_resort.Controllers
 
         private async Task PublishBookingCreatedEvent(Booking booking)
         {
-            // Placeholder for event publishing (e.g., via MediatR or event bus)
-            _logger.LogInformation("Published BookingCreatedEvent for booking {BookingId}", booking.Id);
-            // Future: Publish to message queue or event handler
+            try
+            {
+                var factory = new ConnectionFactory
+                {
+                    HostName = _configuration["RabbitMQ:Host"] ?? "localhost"
+                };
+                using var connection = await factory.CreateConnectionAsync();
+                using var channel = await connection.CreateChannelAsync();
+
+                await channel.QueueDeclareAsync( 
+                    queue: "booking_created",
+                    durable: true,
+                    exclusive: false,
+                    autoDelete: false,
+                    arguments: null
+                );
+
+                var message = JsonSerializer.Serialize(new
+                {
+                    BookingId = booking.Id,
+                    CustomerId = booking.CustomerId,
+                    RoomId = booking.RoomId
+                });
+                var body = Encoding.UTF8.GetBytes(message);
+
+                await channel.BasicPublishAsync( // Changed to BasicPublishAsync()
+                    exchange: "",
+                    routingKey: "booking_created",
+                    body: body
+                );
+
+                _logger.LogInformation("Published BookingCreatedEvent for booking {BookingId}", booking.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish BookingCreatedEvent for booking {BookingId}", booking.Id);
+            }
         }
+
+
 
         private async Task SendBookingConfirmation(Customer customer, Booking booking)
         {

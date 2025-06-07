@@ -62,15 +62,7 @@ namespace hotel_and_resort.Models
         }
 
 
-        // Customer Methods
-        //Task<List<Customer>> GetCustomers();
-        //Task<Customer> GetCustomerById(int id);
-        //Task<Customer> DeleteCustomer(int id);
 
-        //Task<Customer> GetCustomerByUserProfileIdAsync(int userProfileId);
-        //Task<Customer> GetCustomerByUserIdAsync(string userId);
-        //Task<Customer> CreateCustomerAsync(Customer customer);
-        //Task<Customer> UpdateCustomerAsync(Customer customer);
 
         // Room Methods
         Task<List<Room>> GetRoomsAsync();
@@ -124,17 +116,7 @@ namespace hotel_and_resort.Models
 
 
         Task<Payment> ProcessPayment(int bookingId, int amount, string paymentToken);
-        //Task BeginTransactionAsync();
-
-
-        //Task<UserSession> GetUserSessionByIdAsync(string sessionId);
-
-        // Image Methods
-        //Task<List<Image>> GetImages();
-        //Task<Image> GetImage(int id);
-        //Task<Image> AddImage(Image image);
-        //Task<Image> DeleteImage(int id);
-
+      
 
 
     }

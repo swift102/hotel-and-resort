@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj": {}
+    "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\Hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj": {}
   },
   "projects": {
-    "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj": {
+    "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\Hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
+        "projectUniqueName": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\Hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
         "projectName": "Hotel-and-resort",
-        "projectPath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
+        "projectPath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\Hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
         "packagesPath": "C:\\Users\\WESLEY\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\obj\\",
+        "outputPath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\Hotel-and-resort --- Backend\\Hotel-and-resort\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -54,6 +54,10 @@
               "target": "Package",
               "version": "[5.0.0, )"
             },
+            "BCrypt.Net-Next": {
+              "target": "Package",
+              "version": "[4.0.3, )"
+            },
             "EntityFrameworkCore.InMemory.HierarchyId": {
               "target": "Package",
               "version": "[8.0.0, )"
@@ -82,6 +86,10 @@
               "target": "Package",
               "version": "[8.0.3, )"
             },
+            "Microsoft.AspNetCore.Mvc.Versioning": {
+              "target": "Package",
+              "version": "[5.1.0, )"
+            },
             "Microsoft.AspNetCore.WebUtilities": {
               "target": "Package",
               "version": "[8.0.15, )"
@@ -100,9 +108,13 @@
               "target": "Package",
               "version": "[8.0.3, )"
             },
+            "Microsoft.Extensions.Caching.StackExchangeRedis": {
+              "target": "Package",
+              "version": "[9.0.5, )"
+            },
             "Microsoft.Extensions.DependencyInjection.Abstractions": {
               "target": "Package",
-              "version": "[9.0.4, )"
+              "version": "[9.0.5, )"
             },
             "Microsoft.Extensions.Identity.Core": {
               "target": "Package",
@@ -120,6 +132,14 @@
               "target": "Package",
               "version": "[4.20.72, )"
             },
+            "RabbitMQ.Client": {
+              "target": "Package",
+              "version": "[7.1.2, )"
+            },
+            "StackExchange.Redis": {
+              "target": "Package",
+              "version": "[2.8.37, )"
+            },
             "Stripe.net": {
               "target": "Package",
               "version": "[46.12.0, )"
@@ -130,7 +150,7 @@
             },
             "Vonage": {
               "target": "Package",
-              "version": "[7.16.0, )"
+              "version": "[7.20.0, )"
             },
             "xunit": {
               "target": "Package",

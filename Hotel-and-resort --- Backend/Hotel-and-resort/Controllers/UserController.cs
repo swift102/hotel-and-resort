@@ -1,22 +1,20 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
-using System.Threading.Tasks;
-using Hotel_and_resort.Models;
-using Hotel_and_resort.ViewModels;
-using Microsoft.AspNetCore.Identity.UI.Services;
-using System;
-using System.Linq;
-using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
-using System.Text.RegularExpressions;
+﻿using Ganss.Xss;
 using hotel_and_resort.Models;
 using hotel_and_resort.Services;
+using Hotel_and_resort.Models;
+using Hotel_and_resort.ViewModels;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
-
-
-
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Linq;
+using System.Security.Claims;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 // Add an alias for one of the conflicting namespaces
 using IEmailSender = hotel_and_resort.Services.IEmailSender;
 
@@ -34,8 +32,9 @@ namespace Hotel_and_resort.Controllers
         private readonly ILogger<UsersController> _logger;
         private readonly AppDbContext _context;
         private readonly ISmsSenderService _smsSender;
+        private readonly IHtmlSanitizer _sanitizer;
 
-        public UsersController(UserManager<User> userManager, SignInManager<User> signInManager,IEmailSender emailSender, ISmsSenderService smsSender, ILogger<UsersController> logger, AppDbContext context)
+        public UsersController(UserManager<User> userManager, SignInManager<User> signInManager,IEmailSender emailSender, ISmsSenderService smsSender, ILogger<UsersController> logger, AppDbContext context, IHtmlSanitizer sanitizer)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -43,6 +42,7 @@ namespace Hotel_and_resort.Controllers
             _logger = logger;
             _context = context;
             _smsSender = smsSender;
+            _sanitizer = sanitizer ?? throw new ArgumentNullException(nameof(sanitizer));
         }
 
         [HttpPost("login")]
@@ -102,7 +102,7 @@ namespace Hotel_and_resort.Controllers
                 return BadRequest(new { Errors = validationErrors });
             }
 
-           
+
 
             var user = new User
             {
@@ -125,15 +125,23 @@ namespace Hotel_and_resort.Controllers
 
             try
             {
-                await _smsSender.SendSmsAsync(user.ContactNumber, $"Dear {createUserDto.Name},\n\nYour user account has been created. Here are your login details:\n\nUsername: {createUserDto.UserName}\nPassword: {createUserDto.Password}\n\nBest regards,\nHotel and resort");
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var resetLink = $"https://yourwebsite.com/reset-password?token={token}&email={user.Email}";
+                var emailBody = _sanitizer.Sanitize(
+                    $"<h3>Welcome to Hotel and Resort</h3><p>Your account has been created. Please set your password using this link: <a href='{resetLink}'>Set Password</a></p>");
+                await _emailSender.SendEmailAsync(user.Email, "Set Your Password", emailBody);
+
+                await _smsSender.SendSmsAsync(user.ContactNumber, $"Dear {createUserDto.Name},\n\nYour user account has been created. Check your email to set your password.\n\nBest regards,\nHotel and Resort");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to send SMS to {ContactNumber}", user.ContactNumber);
+                _logger.LogError(ex, "Failed to send email/SMS to {Email}", user.Email);
             }
 
             return Ok(user);
+
         }
+
 
         [HttpGet("getAllUsers")]
         public IActionResult GetAllUsers()

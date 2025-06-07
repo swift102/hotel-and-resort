@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 namespace Hotel_and_resort.Models
 
-    {
+{
         public class User : IdentityUser
         {
             public string? Name { get; set; }

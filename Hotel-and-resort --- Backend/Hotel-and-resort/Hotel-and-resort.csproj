@@ -10,6 +10,7 @@
   <ItemGroup>
     <!-- Identity Packages -->
     <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="EntityFrameworkCore.InMemory.HierarchyId" Version="8.0.0" />
     <PackageReference Include="FluentValidation" Version="11.11.0" />
     <PackageReference Include="HtmlSanitizer" Version="9.0.884" />
@@ -17,7 +18,11 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning" Version="5.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.15" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.5" />
+    <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
+    <PackageReference Include="StackExchange.Redis" Version="2.8.37" />
     <PackageReference Include="Stripe.net" Version="46.12.0" />
 
     <!-- Entity Framework Core (EF Core) -->
@@ -27,7 +32,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.4" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.5" />
+
 
     <!-- Identity Extensions -->
     <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="8.0.3" />
@@ -37,7 +43,7 @@
 
     <!-- Swagger for API Documentation -->
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
-    <PackageReference Include="Vonage" Version="7.16.0" />
+    <PackageReference Include="Vonage" Version="7.20.0" />
 
     <!-- Testing Packages -->
     <PackageReference Include="xunit" Version="2.9.3" />

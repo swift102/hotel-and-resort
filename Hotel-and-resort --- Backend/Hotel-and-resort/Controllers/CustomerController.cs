@@ -1,4 +1,5 @@
-﻿using hotel_and_resort.DTOs;
+﻿using Ganss.Xss;
+using hotel_and_resort.DTOs;
 using hotel_and_resort.Models;
 using hotel_and_resort.Services;
 using Hotel_and_resort.Services;
@@ -9,29 +10,45 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace hotel_and_resort.Controllers
 {
-    [Route("api/customers")]
+
+    [Route("api/[controller]")]
     [ApiController]
     public class CustomersController : ControllerBase
     {
         private readonly CustomerService _customerService;
         private readonly ILogger<CustomersController> _logger;
+        private readonly IHtmlSanitizer _sanitizer;
 
         public CustomersController(CustomerService customerService, ILogger<CustomersController> logger)
         {
             _customerService = customerService;
             _logger = logger;
+            _sanitizer = new HtmlSanitizer();
         }
 
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers(int page = 1, int pageSize = 10)
+        public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
+                // Sanitize and validate query parameters
+                if (page < 1 || pageSize < 1)
+                {
+                    _logger.LogWarning("Invalid pagination parameters: page={Page}, pageSize={PageSize}", page, pageSize);
+                    return BadRequest(new { Error = "Page and page size must be positive integers." });
+                }
+                if (pageSize > 100) // Prevent excessive data retrieval
+                {
+                    _logger.LogWarning("Page size too large: pageSize={PageSize}", pageSize);
+                    return BadRequest(new { Error = "Page size cannot exceed 100." });
+                }
+
                 var customers = await _customerService.GetCustomersAsync(page, pageSize);
                 return Ok(customers);
             }
@@ -48,6 +65,12 @@ namespace hotel_and_resort.Controllers
         {
             try
             {
+                if (id <= 0)
+                {
+                    _logger.LogWarning("Invalid customer ID: {CustomerId}", id);
+                    return BadRequest(new { Error = "Invalid customer ID." });
+                }
+
                 var customer = await _customerService.GetCustomerByIdAsync(id);
                 if (customer == null)
                 {
@@ -55,8 +78,7 @@ namespace hotel_and_resort.Controllers
                     return NotFound(new { Error = $"Customer with ID {id} not found." });
                 }
 
-                // Restrict to admin or the customer themselves
-                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (!User.IsInRole("Admin") && customer.Id.ToString() != userId)
                 {
                     _logger.LogWarning("Unauthorized access to customer {CustomerId} by user {UserId}", id, userId);
@@ -84,6 +106,12 @@ namespace hotel_and_resort.Controllers
 
             try
             {
+                // Sanitize DTO inputs
+                customerDto.FirstName = _sanitizer.Sanitize(customerDto.FirstName);
+                customerDto.LastName = _sanitizer.Sanitize(customerDto.LastName);
+                customerDto.Email = _sanitizer.Sanitize(customerDto.Email);
+                customerDto.Phone = _sanitizer.Sanitize(customerDto.Phone);
+
                 var customer = new Customer
                 {
                     FirstName = customerDto.FirstName,
@@ -125,6 +153,12 @@ namespace hotel_and_resort.Controllers
 
             try
             {
+                // Sanitize DTO inputs
+                customerDto.FirstName = _sanitizer.Sanitize(customerDto.FirstName);
+                customerDto.LastName = _sanitizer.Sanitize(customerDto.LastName);
+                customerDto.Email = _sanitizer.Sanitize(customerDto.Email);
+                customerDto.Phone = _sanitizer.Sanitize(customerDto.Phone);
+
                 var customer = await _customerService.GetCustomerByIdAsync(id);
                 if (customer == null)
                 {
@@ -164,6 +198,12 @@ namespace hotel_and_resort.Controllers
         {
             try
             {
+                if (id <= 0)
+                {
+                    _logger.LogWarning("Invalid customer ID: {CustomerId}", id);
+                    return BadRequest(new { Error = "Invalid customer ID." });
+                }
+
                 await _customerService.DeleteCustomerAsync(id);
                 _logger.LogInformation("Customer deleted: {CustomerId}", id);
                 return NoContent();
@@ -222,5 +262,4 @@ namespace hotel_and_resort.Controllers
         [MaxLength(20)]
         public string Phone { get; set; }
     }
-
 }
