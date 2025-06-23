@@ -64,6 +64,11 @@ namespace hotel_and_resort.Models
                 .WithOne(res => res.Room)
                 .HasForeignKey(res => res.RoomId);
 
+
+            modelBuilder.Entity<Room>()
+               .HasMany(r => r.Amenities)
+               .WithMany(a => a.Rooms);
+
             // User relationships
             modelBuilder.Entity<User>()
               .Property(u => u.UserProfileID)
@@ -89,11 +94,11 @@ namespace hotel_and_resort.Models
             base.OnModelCreating(modelBuilder);
 
             // Seed roles
-            modelBuilder.Entity<IdentityRole>().HasData(
-                new IdentityRole { Name = "Admin", NormalizedName = "ADMIN" },
-                new IdentityRole { Name = "Staff", NormalizedName = "STAFF" },
-                new IdentityRole { Name = "Guest", NormalizedName = "GUEST" }
-            );
+            //modelBuilder.Entity<IdentityRole>().HasData(
+            //    new IdentityRole { Name = "Admin", NormalizedName = "ADMIN" },
+            //    new IdentityRole { Name = "Staff", NormalizedName = "STAFF" },
+            //    new IdentityRole { Name = "Guest", NormalizedName = "GUEST" }
+            //);
 
             base.OnModelCreating(modelBuilder);
 

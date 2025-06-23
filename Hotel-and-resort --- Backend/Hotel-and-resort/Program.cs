@@ -19,7 +19,7 @@ using Middleware;
 using Stripe;
 using System.Text;
 using System.Threading.RateLimiting;
-using AspNetCoreRateLimit; 
+
 
 
 
@@ -149,6 +149,7 @@ builder.Services.AddHsts(options =>
 
 
 
+
 // Add API versioning
 builder.Services.AddApiVersioning(options =>
 {
@@ -173,6 +174,11 @@ builder.Services.AddScoped<ISmsSenderService>(provider =>
     return new SmsSenderService("59cb8814", "ttNnQ3C9ZQtxM75H", logger);
 });
 
+builder.Services.AddIdentity<User, IdentityRole>()
+      .AddEntityFrameworkStores<AppDbContext>()
+      .AddDefaultTokenProviders();
+
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -192,6 +198,30 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseStaticFiles(); 
+}
+
+// After building the app
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+    // Seed using the seeder class
+    var seeder = new DatabaseSeeder(context, userManager, roleManager);
+    await seeder.SeedAsync();
+}
+
+// User seeding separately
+using (var scope = app.Services.CreateScope())
+{
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+
+    foreach (var user in SeedData.GetUsers())
+    {
+        await userManager.CreateAsync(user, "DefaultPassword123!");
+    }
 }
 
 // Middleware order is important!

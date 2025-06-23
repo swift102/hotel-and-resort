@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule, provideClientHydration } from '@angular/platform-browser';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -11,7 +12,7 @@ import { ContactComponent } from './contact/contact.component';
 import { BookingComponent } from './Booking/booking/booking.component';
 import { RoomCardComponent } from './Booking/room-card/room-card.component';
 import { PersonalInfoComponent } from './Booking/personal-info/personal-info.component';
-import { PaymentComponent } from './Booking/payment/payment.component';
+// import { PaymentComponent } from './Booking/payment/payment.component';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 
 @NgModule({
@@ -24,13 +25,15 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
     BookingComponent,
     RoomCardComponent,
     PersonalInfoComponent,
-    PaymentComponent
+    // PaymentComponent,
+     NavbarComponent,
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     FormsModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    CommonModule
   ],
   providers: [
     provideClientHydration(),

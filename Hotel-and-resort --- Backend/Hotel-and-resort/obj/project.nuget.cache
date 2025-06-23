@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "PHCuxOpdFKo=",
+  "dgSpecHash": "XCvHbckSDxE=",
   "success": true,
-  "projectFilePath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\Hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
+  "projectFilePath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\WESLEY\\.nuget\\packages\\anglesharp\\0.17.1\\anglesharp.0.17.1.nupkg.sha512",
     "C:\\Users\\WESLEY\\.nuget\\packages\\anglesharp.css\\0.17.0\\anglesharp.css.0.17.0.nupkg.sha512",
@@ -148,9 +148,9 @@
       "code": "NU1603",
       "level": "Warning",
       "message": "Hotel-and-resort depends on Stripe.net (>= 46.12.0) but Stripe.net 46.12.0 was not found. Stripe.net 47.0.0 was resolved instead.",
-      "projectPath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\Hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
+      "projectPath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\Hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
+      "filePath": "C:\\Users\\WESLEY\\Documents\\GitHub\\hotel-and-resort\\hotel-and-resort --- Backend\\Hotel-and-resort\\Hotel-and-resort.csproj",
       "libraryId": "Stripe.net",
       "targetGraphs": [
         "net8.0"

@@ -6,5 +6,5 @@ import { Component } from '@angular/core';
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
-  title = 'hotel-and-resort';
+  title = 'Serenity Haven Resort & Spa';
 }
