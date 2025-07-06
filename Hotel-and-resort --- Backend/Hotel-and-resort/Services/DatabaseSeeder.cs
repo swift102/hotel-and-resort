@@ -1,4 +1,4 @@
-﻿using hotel_and_resort.Models; 
+﻿using Hotel_and_resort.Data;
 using Hotel_and_resort.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

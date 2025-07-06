@@ -1,5 +1,4 @@
-﻿using hotel_and_resort.Models;
-using Hotel_and_resort.Models;
+﻿using Hotel_and_resort.Models;
 using hotel_and_resort.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -13,6 +12,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
+using Hotel_and_resort.Data;
 
 
 namespace hotel_and_resort.Models

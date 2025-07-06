@@ -1,4 +1,5 @@
 ﻿using hotel_and_resort.Models;
+using Hotel_and_resort.Data;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Stripe;

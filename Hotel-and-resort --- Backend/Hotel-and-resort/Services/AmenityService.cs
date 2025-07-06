@@ -1,5 +1,6 @@
 ﻿using Ganss.Xss;
 using hotel_and_resort.Models;
+using Hotel_and_resort.Data;
 using Microsoft.EntityFrameworkCore; 
 using Microsoft.Extensions.Caching.Memory;
 

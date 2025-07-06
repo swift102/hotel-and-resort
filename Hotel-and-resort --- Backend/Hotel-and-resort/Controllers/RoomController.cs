@@ -1,6 +1,7 @@
 ﻿using Ganss.Xss;
 using hotel_and_resort.Models;
 using hotel_and_resort.Services;
+using Hotel_and_resort.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Hotel_and_resort.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Hotel_and_resort.Data;
 
 namespace Hotel_and_resort.Controllers
 {

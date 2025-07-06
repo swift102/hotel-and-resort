@@ -16,6 +16,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Hotel_and_resort.Data;
 
 namespace hotel_and_resort.Controllers
 {

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Hotel_and_resort.Services;
 using AngleSharp.Text;
+using Hotel_and_resort.Data;
 
 
 namespace Hotel_and_resort.Services

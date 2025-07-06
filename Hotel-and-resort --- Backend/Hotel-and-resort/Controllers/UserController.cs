@@ -1,6 +1,6 @@
 ﻿using Ganss.Xss;
-using hotel_and_resort.Models;
 using hotel_and_resort.Services;
+using Hotel_and_resort.Data;
 using Hotel_and_resort.Models;
 using Hotel_and_resort.ViewModels;
 using Microsoft.AspNetCore.Authentication;

@@ -1,4 +1,5 @@
-﻿using Hotel_and_resort.Models;
+﻿using Hotel_and_resort.Data;
+using Hotel_and_resort.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Collections.Generic;
